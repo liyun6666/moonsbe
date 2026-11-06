@@ -1,0 +1,79 @@
+----
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/shell",
+  "moonbitlang/async@0.21.3/fs",
+  "moonbitlang/core/env",
+}
+----
+
+///|
+async fn step(name : String, program : String, arguments : Array[String]) -> Unit {
+  println("Checking \{name}")
+  let result = @shell.Cmd(program, arguments).output(timeout_ms=60000)
+  let log = "\{program} \{arguments.join(" ")}\n\n\{result.stdout()}\n\{result.stderr()}\nexit=\{result.exit_code()}\n"
+  @fs.write_file("_build/interop-logs/\{name}.log", log)
+  result.check()
+}
+
+///|
+async fn main {
+  for directory in ["_build/tools", "_build/reference-classes", "_build/interop-logs"] {
+    if !@fs.exists(directory) { @fs.mkdir(directory, recursive=true) }
+  }
+  let jar = "_build/tools/sbe-all-1.35.0.jar"
+  if !@fs.exists(jar) {
+    step("01-download-reference", "curl", [
+      "-fsSL", "--retry", "2", "--connect-timeout", "15",
+      "https://repo.maven.apache.org/maven2/uk/co/real-logic/sbe-all/1.35.0/sbe-all-1.35.0.jar",
+      "-o", jar,
+    ])
+  }
+  step("02-generate-java", "java", [
+    "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED",
+    "-Dsbe.xinclude.aware=true", "-Dsbe.output.dir=_build/reference-java",
+    "-jar", jar, "interop/upstream/example-schema.xml",
+  ])
+  let sources = ["-cp", jar, "-d", "_build/reference-classes"]
+  for file in @fs.readdir("_build/reference-java/baseline") {
+    if file.has_suffix(".java") { sources.push("_build/reference-java/baseline/\{file}") }
+  }
+  sources.push("interop/upstream/ExampleUsingGeneratedStub.java")
+  sources.push("interop/ReferenceVerifier.java")
+  step("03-compile-reference", "javac", sources)
+  let separator = if @env.get_env_var("OS") == Some("Windows_NT") { ";" } else { ":" }
+  let classpath = "\{jar}\{separator}_build/reference-classes"
+  step("04-java-encode", "java", [
+    "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED",
+    "-Dsbe.encoding.filename=_build/java-car.bin", "-cp", classpath,
+    "uk.co.real_logic.sbe.examples.ExampleUsingGeneratedStub",
+  ])
+  let moon = ["run", "cmd/main", "--target", "js", "--warn-list=-implicit_impl_as_method", "--"]
+  step("05-moon-decode", "moon", moon + [
+    "decode", "interop/upstream/example-schema.xml", "_build/java-car.bin", "_build/java-car-decoded.json",
+  ])
+  step("06-moon-encode-independent-input", "moon", moon + [
+    "encode", "interop/upstream/example-schema.xml", "1", "examples/car.json", "_build/moon-car.bin",
+  ])
+  step("07-java-verify", "java", [
+    "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", "-cp", classpath,
+    "uk.co.real_logic.sbe.examples.ReferenceVerifier", "_build/moon-car.bin",
+  ])
+  step("08-generate-moonbit", "moon", moon + [
+    "generate", "interop/upstream/example-schema.xml", "generated/car/messages.mbt",
+  ])
+  step("09-compile-generated", "moon", [
+    "check", "--target", "js", "--warn-list=-implicit_impl_as_method", "--deny-warn",
+  ])
+  step("10-typed-consumer", "moon", [
+    "run", "examples/typed", "--target", "js", "--warn-list=-implicit_impl_as_method", "--",
+    "_build/java-car.bin", "_build/typed-car.bin",
+  ])
+  step("11-java-verify-generated", "java", [
+    "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", "-cp", classpath,
+    "uk.co.real_logic.sbe.examples.ReferenceVerifier", "_build/typed-car.bin",
+  ])
+  @fs.write_file("_build/interop-logs/result.txt",
+    "PASS: Java -> MoonBit, MoonBit -> Java, typed generated consumer -> Java.\n207-byte reference message matches byte for byte.\n")
+  println("PASS: cross-language messages and generated typed consumer; logs in _build/interop-logs")
+}

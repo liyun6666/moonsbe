@@ -1,0 +1,7 @@
+import {
+  "liyun6666/moonsbe/generated/car" @car,
+  "moonbitlang/x/fs",
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")
