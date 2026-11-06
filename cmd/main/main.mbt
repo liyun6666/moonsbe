@@ -10,6 +10,7 @@ fn usage() -> String {
     #|  encode SCHEMA.xml TEMPLATE_ID MESSAGE.json OUTPUT.bin
     #|  decode SCHEMA.xml INPUT.bin [OUTPUT.json]
     #|  hex INPUT.bin
+    #|  generate SCHEMA.xml OUTPUT.mbt
     #|
     #|Run with: moon run cmd/main --target js -- COMMAND ...
     #|Integers in JSON may be exact decimal strings. Binary fields use hex.
@@ -18,7 +19,7 @@ fn usage() -> String {
 }
 
 ///|
-fn load_schema(path : String) -> @sbe.Schema raise {
+fn load_sources(path : String) -> (String, Map[String, String]) raise {
   let source = @fs.read_file_to_string(path)
   let normalized = path.replace_all(old="\\", new="/")
   let parts = normalized.split("/").map((part) => part.to_owned()).to_array()
@@ -40,6 +41,12 @@ fn load_schema(path : String) -> @sbe.Schema raise {
     includes[name] = text
     for nested in @sbe.schema_include_names(text) { queue.push(nested) }
   }
+  (source, includes)
+}
+
+///|
+fn load_schema(path : String) -> @sbe.Schema raise {
+  let (source, includes) = load_sources(path)
   @sbe.parse_schema(source, includes~)
 }
 
@@ -92,6 +99,12 @@ fn run(args : Array[String]) -> Unit raise {
       println("Decoded template \{result.header.template_id}")
     }
     ["hex", input_path] => println(@sbe.to_hex(@fs.read_file_to_bytes(input_path)))
+    ["generate", schema_path, output_path] => {
+      let (source, includes) = load_sources(schema_path)
+      let code = @sbe.generate_moonbit(source, includes~)
+      @fs.write_string_to_file(output_path, code)
+      println("Generated typed MoonBit adapters in \{output_path}")
+    }
     _ => { println(usage()); @sys.exit(2) }
   }
 }
