@@ -1,0 +1,9 @@
+import {
+  "liyun6666/moonsbe" @sbe,
+  "moonbitlang/x/fs",
+  "moonbitlang/x/sys",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+}
+
+pkgtype(kind: "executable")

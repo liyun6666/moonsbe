@@ -24,3 +24,7 @@ keywords = ["sbe", "binary", "codec", "codegen", "interoperability"]
 preferred_target = "js"
 
 description = "SBE binary message codecs and MoonBit code generation with reference interoperability tests"
+
+import {
+  "moonbitlang/x@0.5.7",
+}
