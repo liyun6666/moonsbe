@@ -191,6 +191,13 @@ pub fn parse_schema(xml : String, includes? : Map[String, String] = Map([])) -> 
   if root.local_name() != "messageSchema" {
     raise InvalidSchema("expected SBE messageSchema root", root.position)
   }
+  let root_parts = root.name.split(":").to_array()
+  if root_parts.length() > 1 {
+    let binding = root.attributes.get("xmlns:\{root_parts[0]}")
+    if binding != Some("http://fixprotocol.io/2016/sbe") && binding != Some("http://fixprotocol.io/2019/sbe") {
+      raise InvalidSchema("unbound or unsupported SBE namespace", root.position)
+    }
+  }
   let schema_id = parse_schema_id(root, "id", default=-1)
   if schema_id < 0 {
     raise InvalidSchema("messageSchema requires id", root.position)
@@ -242,5 +249,7 @@ pub fn parse_schema(xml : String, includes? : Map[String, String] = Map([])) -> 
   if messages.is_empty() {
     raise InvalidSchema("schema must contain a message", root.position)
   }
-  { id: schema_id, version, package_name: root.attributes.get("package").unwrap_or("generated"), byte_order: order, types: compiler.compiled, messages }
+  let schema : Schema = { id: schema_id, version, package_name: root.attributes.get("package").unwrap_or("generated"), byte_order: order, types: compiler.compiled, messages }
+  validate_compiled_schema(schema)
+  schema
 }
