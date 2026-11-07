@@ -15,11 +15,12 @@ fn code_quote(text : String) -> String {
       '\n' => result.write_string("\\n")
       '\r' => result.write_string("\\r")
       '\t' => result.write_string("\\t")
-      _ => {
+      _ =>
         if char.to_int() < 32 {
           result.write_string("\\u{\{char.to_int().to_string(radix=16)}}")
-        } else { result.write_char(char) }
-      }
+        } else {
+          result.write_char(char)
+        }
     }
   }
   result.write_char('"')
@@ -34,11 +35,15 @@ fn type_identifier(name : String) -> String raise SbeError {
     if char.is_ascii_alphabetic() || char.is_ascii_digit() {
       out.write_char(if upper { char.to_ascii_uppercase() } else { char })
       upper = false
-    } else { upper = true }
+    } else {
+      upper = true
+    }
   }
   let result = out.to_string()
   if result.is_empty() || result.iter().to_array()[0].is_ascii_digit() {
-    raise Unsupported("schema name cannot be converted to a MoonBit type: \{name}")
+    raise Unsupported(
+      "schema name cannot be converted to a MoonBit type: \{name}",
+    )
   }
   result
 }
@@ -49,7 +54,9 @@ fn field_identifier(name : String) -> String raise SbeError {
   let mut previous_lower = false
   for char in name {
     if char.is_ascii_uppercase() {
-      if previous_lower { out.write_char('_') }
+      if previous_lower {
+        out.write_char('_')
+      }
       out.write_char(char.to_ascii_lowercase())
       previous_lower = false
     } else if char.is_ascii_lowercase() || char.is_ascii_digit() {
@@ -86,15 +93,37 @@ priv struct Generator {
 }
 
 ///|
-fn Generator::claim(self : Generator, generated : String, original : String) -> Bool raise SbeError {
+fn Generator::claim(
+  self : Generator,
+  generated : String,
+  original : String,
+) -> Bool raise SbeError {
   match generated {
-    "String" | "Bytes" | "Json" | "Unit" | "Bool" | "Int" | "Int32" | "Int64" |
-    "UInt" | "UInt32" | "UInt64" | "Float" | "Double" | "Array" | "Map" | "Option" | "Result" =>
-      raise Unsupported("generated type conflicts with MoonBit built-in: \{generated}")
+    "String"
+    | "Bytes"
+    | "Json"
+    | "Unit"
+    | "Bool"
+    | "Int"
+    | "Int32"
+    | "Int64"
+    | "UInt"
+    | "UInt32"
+    | "UInt64"
+    | "Float"
+    | "Double"
+    | "Array"
+    | "Map"
+    | "Option"
+    | "Result" =>
+      raise Unsupported(
+        "generated type conflicts with MoonBit built-in: \{generated}",
+      )
     _ => ()
   }
   match self.emitted.get(generated) {
-    Some(previous) if previous != original => raise InvalidSchema("generated name collision: \{generated}", 0)
+    Some(previous) if previous != original =>
+      raise InvalidSchema("generated name collision: \{generated}", 0)
     Some(_) => false
     None => {
       self.emitted[generated] = original
@@ -108,8 +137,12 @@ fn optional_adapter(field : GenField) -> GenField {
   {
     ..field,
     type_name: "\{field.type_name}?",
-    to_value: (source) => "match \{source} { Some(item) => \{(field.to_value)("item")}; None => @sbe.Absent }",
-    from_value: (source) => "match \{source} { @sbe.Absent => None; item => Some(\{(field.from_value)("item")}) }",
+    to_value: source => {
+      "match \{source} { Some(item) => \{(field.to_value)("item")}; None => @sbe.Absent }"
+    },
+    from_value: source => {
+      "match \{source} { @sbe.Absent => None; item => Some(\{(field.from_value)("item")}) }"
+    },
   }
 }
 
@@ -118,23 +151,34 @@ fn array_adapter(field : GenField) -> GenField {
   {
     ..field,
     type_name: "Array[\{field.type_name}]",
-    to_value: (source) => "@sbe.Sequence(\{source}.map((item) => \{(field.to_value)("item")}))",
-    from_value: (source) => "\{source}.as_sequence().map((item) => \{(field.from_value)("item")})",
+    to_value: source => {
+      "@sbe.Sequence(\{source}.map((item) => \{(field.to_value)("item")}))"
+    },
+    from_value: source => {
+      "\{source}.as_sequence().map((item) => \{(field.from_value)("item")})"
+    },
   }
 }
 
 ///|
-fn scalar_adapter(primitive : Primitive, wire_name : String) -> GenField raise SbeError {
+fn scalar_adapter(
+  primitive : Primitive,
+  wire_name : String,
+) -> GenField raise SbeError {
   let (type_name, value_case, getter) = if primitive == Char {
     ("String", "Text", "as_text")
   } else if primitive.is_float() {
     ("Double", "Floating", "as_float")
   } else if primitive.is_signed() {
     ("Int64", "Signed", "as_signed")
-  } else { ("UInt64", "Unsigned", "as_unsigned") }
+  } else {
+    ("UInt64", "Unsigned", "as_unsigned")
+  }
   {
-    wire_name, name: field_identifier(wire_name), type_name,
-    to_value: (source) => "@sbe.\{value_case}(\{source})",
-    from_value: (source) => "\{source}.\{getter}()",
+    wire_name,
+    name: field_identifier(wire_name),
+    type_name,
+    to_value: source => "@sbe.\{value_case}(\{source})",
+    from_value: source => "\{source}.\{getter}()",
   }
 }
