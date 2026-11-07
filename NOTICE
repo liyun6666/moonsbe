@@ -1,0 +1,20 @@
+moonsbe
+Copyright 2026 Ma Yunyun
+
+MoonBit implementation and project-specific verification code are provided
+under the Apache License, Version 2.0.
+
+The following reference material is copied from
+https://github.com/aeron-io/simple-binary-encoding, tag 1.35.0:
+
+  interop/upstream/example-schema.xml
+  interop/upstream/common-types.xml
+  interop/upstream/ExampleUsingGeneratedStub.java
+
+Copyright Real Logic Limited and the upstream contributors.
+These files are distributed under Apache License 2.0 and their original
+contents are preserved. The LICENSE in this repository contains the license
+terms. Generated sources are identified separately from handwritten code.
+
+The SBE specification is published by FIX Trading Community. References to
+that specification identify the implemented compatibility profile.
