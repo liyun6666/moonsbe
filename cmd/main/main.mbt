@@ -1,5 +1,7 @@
 ///|
-suberror CliError { CliError(String) } derive(Debug)
+suberror CliError {
+  CliError(String)
+} derive(Debug)
 
 ///|
 fn usage() -> String {
@@ -11,6 +13,7 @@ fn usage() -> String {
     #|  decode SCHEMA.xml INPUT.bin [OUTPUT.json]
     #|  hex INPUT.bin
     #|  generate SCHEMA.xml OUTPUT.mbt
+    #|  compare OLD_SCHEMA.xml NEW_SCHEMA.xml
     #|
     #|Run with: moon run cmd/main --target js -- COMMAND ...
     #|Integers in JSON may be exact decimal strings. Binary fields use hex.
@@ -22,7 +25,7 @@ fn usage() -> String {
 fn load_sources(path : String) -> (String, Map[String, String]) raise {
   let source = @fs.read_file_to_string(path)
   let normalized = path.replace_all(old="\\", new="/")
-  let parts = normalized.split("/").map((part) => part.to_owned()).to_array()
+  let parts = normalized.split("/").map(part => part.to_owned()).to_array()
   ignore(parts.pop())
   let directory = parts.join("/")
   let includes : Map[String, String] = Map([])
@@ -31,15 +34,29 @@ fn load_sources(path : String) -> (String, Map[String, String]) raise {
   while head < queue.length() {
     let name = queue[head]
     head += 1
-    if includes.contains(name) { continue }
-    if includes.length() >= 16 || name.contains(":") || name.contains("..") ||
-        name.has_prefix("/") || name.has_prefix("\\") || name.contains("\\") {
-      raise CliError("CLI includes require bounded relative paths within the schema directory")
+    if includes.contains(name) {
+      continue
     }
-    let resource_path = if directory.is_empty() { name } else { "\{directory}/\{name}" }
+    if includes.length() >= 16 ||
+      name.contains(":") ||
+      name.contains("..") ||
+      name.has_prefix("/") ||
+      name.has_prefix("\\") ||
+      name.contains("\\") {
+      raise CliError(
+        "CLI includes require bounded relative paths within the schema directory",
+      )
+    }
+    let resource_path = if directory.is_empty() {
+      name
+    } else {
+      "\{directory}/\{name}"
+    }
     let text = @fs.read_file_to_string(resource_path)
     includes[name] = text
-    for nested in @sbe.schema_include_names(text) { queue.push(nested) }
+    for nested in @sbe.schema_include_names(text) {
+      queue.push(nested)
+    }
   }
   (source, includes)
 }
@@ -52,27 +69,36 @@ fn load_schema(path : String) -> @sbe.Schema raise {
 
 ///|
 fn schema_json(schema : @sbe.Schema) -> Json {
-  let messages = schema.messages.map((message) => Json::object({
-    "name": Json::string(message.name),
-    "templateId": Json::number(message.id.to_double()),
-    "blockLength": Json::number(message.block.block_length.to_double()),
-    "fixedFields": Json::number(message.block.fields.length().to_double()),
-    "groups": Json::number(message.block.groups.length().to_double()),
-    "variableData": Json::number(message.block.data.length().to_double()),
-  }))
+  let messages = schema.messages.map(message => {
+    Json::object({
+      "name": Json::string(message.name),
+      "templateId": Json::number(message.id.to_double()),
+      "blockLength": Json::number(message.block.block_length.to_double()),
+      "fixedFields": Json::number(message.block.fields.length().to_double()),
+      "groups": Json::number(message.block.groups.length().to_double()),
+      "variableData": Json::number(message.block.data.length().to_double()),
+    })
+  })
   Json::object({
     "schemaId": Json::number(schema.id.to_double()),
     "version": Json::number(schema.version.to_double()),
     "package": Json::string(schema.package_name),
-    "byteOrder": Json::string(match schema.byte_order { LittleEndian => "littleEndian"; BigEndian => "bigEndian" }),
+    "byteOrder": Json::string(
+      match schema.byte_order {
+        LittleEndian => "littleEndian"
+        BigEndian => "bigEndian"
+      },
+    ),
     "messages": Json::array(messages),
   })
 }
 
 ///|
-fn template_id(source : String) -> Int raise {
+fn template_id(source : String) -> Int32 raise {
   let id = @string.parse_int(source)
-  if id < 0 || id > 65534 { raise CliError("templateId must be 0..65534") }
+  if id < 0 || id > 65534 {
+    raise CliError("templateId must be 0..65534")
+  }
   id
 }
 
@@ -80,32 +106,60 @@ fn template_id(source : String) -> Int raise {
 fn run(args : Array[String]) -> Unit raise {
   match args {
     [] | ["help"] | ["--help"] => println(usage())
-    ["schema", path] => println(schema_json(load_schema(path)).stringify(indent=2))
+    ["schema", path] =>
+      println(schema_json(load_schema(path)).stringify(indent=2))
     ["encode", schema_path, id, input_path, output_path] => {
       let schema = load_schema(schema_path)
       let template = template_id(id)
-      let value = @sbe.value_from_json(schema, template, @fs.read_file_to_string(input_path))
+      let value = @sbe.value_from_json(
+        schema,
+        template,
+        @fs.read_file_to_string(input_path),
+      )
       let bytes = @sbe.encode(schema, template, value)
       @fs.write_bytes_to_file(output_path, bytes)
       println("Encoded \{bytes.length()} bytes")
     }
     ["decode", schema_path, input_path] => {
-      let result = @sbe.decode(load_schema(schema_path), @fs.read_file_to_bytes(input_path))
+      let result = @sbe.decode(
+        load_schema(schema_path),
+        @fs.read_file_to_bytes(input_path),
+      )
       println(result.value.to_json().stringify(indent=2))
     }
     ["decode", schema_path, input_path, output_path] => {
-      let result = @sbe.decode(load_schema(schema_path), @fs.read_file_to_bytes(input_path))
-      @fs.write_string_to_file(output_path, result.value.to_json().stringify(indent=2))
+      let result = @sbe.decode(
+        load_schema(schema_path),
+        @fs.read_file_to_bytes(input_path),
+      )
+      @fs.write_string_to_file(
+        output_path,
+        result.value.to_json().stringify(indent=2),
+      )
       println("Decoded template \{result.header.template_id}")
     }
-    ["hex", input_path] => println(@sbe.to_hex(@fs.read_file_to_bytes(input_path)))
+    ["hex", input_path] =>
+      println(@sbe.to_hex(@fs.read_file_to_bytes(input_path)))
+    ["compare", old_path, new_path] => {
+      let report = @sbe.compare_schemas(
+        load_schema(old_path),
+        load_schema(new_path),
+      )
+      println(Json::Json(report).stringify(indent=2))
+      if !report.old_reads_new || !report.new_reads_old {
+        @sys.exit(3)
+      }
+    }
     ["generate", schema_path, output_path] => {
       let (source, includes) = load_sources(schema_path)
       let code = @sbe.generate_moonbit(source, includes~)
       @fs.write_string_to_file(output_path, code)
       println("Generated typed MoonBit adapters in \{output_path}")
     }
-    _ => { println(usage()); @sys.exit(2) }
+    _ => {
+      println(usage())
+      @sys.exit(2)
+    }
   }
 }
 
@@ -113,7 +167,10 @@ fn run(args : Array[String]) -> Unit raise {
 fn main {
   let raw = @env.args()
   let args = if raw.length() >= 2 { raw[2:].to_owned() } else { [] }
-  try run(args) catch {
-    error => { println("ERROR: \{Repr(error)}"); @sys.exit(2) }
+  run(args) catch {
+    error => {
+      println("ERROR: \{Repr(error)}")
+      @sys.exit(2)
+    }
   }
 }
