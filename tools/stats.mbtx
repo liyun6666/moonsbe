@@ -1,0 +1,36 @@
+----
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/shell",
+  "moonbitlang/core/string",
+}
+----
+
+///|
+async fn main {
+  let result = @shell.Cmd("rg", [
+    "--count", "--pcre2", "^\\s*(?!//|\\*|#)\\S", "-g", "*.mbt", "-g", "!generated/**",
+    "-g", "!**/_build/**", "-g", "!**/.mooncakes/**", ".",
+  ]).output()
+  result.check()
+  let mut implementation = 0
+  let mut tests = 0
+  for line in result.stdout().split("\n") {
+    let parts = line.trim().split(":").to_array()
+    if parts.length() < 2 {
+      continue
+    }
+    let count = @string.parse_int(parts[parts.length() - 1])
+    if parts[0].has_suffix("_test.mbt") || parts[0].has_suffix("_wbtest.mbt") {
+      tests += count
+    } else {
+      implementation += count
+    }
+  }
+  println("Handwritten MoonBit implementation: \{implementation}")
+  println("Handwritten MoonBit tests: \{tests}")
+  println("Total nonblank, noncomment .mbt lines: \{implementation + tests}")
+  println(
+    "Excluded: generated/**, vendored Java/XML, .mbti, .mbtx tools, documentation and build outputs.",
+  )
+}

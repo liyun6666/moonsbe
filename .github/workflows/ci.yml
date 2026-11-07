@@ -1,0 +1,52 @@
+name: MoonSBE CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '24'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned MoonBit toolchain
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh
+          bash /tmp/install-moonbit.sh 0.1.20261023
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - run: moon version --all
+      - run: moon update
+      - run: moon fmt --check
+      - run: moon check --target js --warn-list=-implicit_impl_as_method --deny-warn
+      - run: moon test --target js --warn-list=-implicit_impl_as_method --deny-warn
+      - name: Test library on Wasm GC
+        run: moon test --target wasm-gc -p liyun6666/moonsbe --warn-list=-implicit_impl_as_method --deny-warn
+      - name: Verify upstream Java interoperability and generated consumer
+        run: moon run tools/interop.mbtx
+      - name: Check generated source reproducibility
+        run: git diff --exit-code -- generated/car/messages.mbt
+      - name: Count handwritten MoonBit code
+        run: moon run tools/stats.mbtx
+      - name: Save interoperability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonsbe-interop-evidence
+          path: |
+            _build/interop-logs/
+            _build/java-car.bin
+            _build/java-car-decoded.json
+            _build/moon-car.bin
+            _build/typed-car.bin
+          if-no-files-found: warn
