@@ -44,6 +44,6 @@ moon run tools/interop.mbtx
 0e1649c2f5a2719b2d10c2a9dc6e1aa962d8523fb8c4531052dbdad65528bfe2
 ```
 
-运行环境为 Windows、MoonBit 0.1.20261023、moonc v0.10.17 和 JDK 24.0.1。独立 CI 将在 Ubuntu、同一 MoonBit 工具链、Temurin 24 和 Node.js 22 中重复执行。每次运行清理旧成功标记，失败会停止并保留已产生的日志。
+本地运行环境为 Windows、MoonBit 0.1.20261023、moonc v0.10.17 和 JDK 24.0.1。独立 CI 已在 Ubuntu、固定编译器 v0.10.17+d971670cd、Temurin 24 和 Node.js 22 中重复执行并通过。每次运行清理旧成功标记，失败会停止并保留已产生的日志。
 
 日志位于 `_build/interop-logs`。GitHub Actions 将日志、Java 消息、MoonBit 消息和解码 JSON 归档为 `moonsbe-interop-evidence`。完整测试范围与限制见 compatibility.md。

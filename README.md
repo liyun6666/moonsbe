@@ -9,6 +9,7 @@ MoonBit 的 SBE 二进制消息编解码与类型化代码生成库。输入现�
 - [兼容范围](docs/compatibility.md)
 - [独立互通验收与实际场景](docs/interoperability.md)
 - [项目申报书](docs/项目申报书.md)
+- [项目提交说明书](docs/项目提交说明书.md)
 - [上游版本与来源](https://github.com/liyun6666/moonsbe/blob/main/interop/UPSTREAM.md)
 
 ## 快速运行
