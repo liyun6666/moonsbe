@@ -211,6 +211,7 @@ fn SchemaCompiler::group_dimension(
       match (block_type, count_type) {
         (Encoded(a), Encoded(b)) if a.primitive == UInt16 &&
           a.length == 1 &&
+          a.presence == Required &&
           b.length == 1 &&
           b.presence == Required &&
           (

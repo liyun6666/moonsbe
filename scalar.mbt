@@ -44,7 +44,7 @@ fn check_scalar(
     }
     if number < min ||
       number > max ||
-      same_scalar(value, encoding_null(encoding)) {
+      same_scalar(Signed(number), encoding_null(encoding)) {
       raise InvalidValue(path, "signed integer is outside its SBE value range")
     }
   } else if primitive.is_float() {

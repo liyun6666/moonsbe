@@ -175,3 +175,19 @@ test "unknown record fields and numeric null sentinels are rejected" {
     }
   }
 }
+
+///|
+test "signed custom null cannot bypass validation through an unsigned Value" {
+  let schema = test_schema(
+    "<field name=\"value\" id=\"1\" type=\"Small\"/>",
+    types="<type name=\"Small\" primitiveType=\"int16\" nullValue=\"7\"/>",
+  )
+  for number in [@moonsbe.Unsigned(7UL), @moonsbe.Signed(7L)] {
+    try @moonsbe.encode(schema, 1, @moonsbe.Record({ "value": number })) catch {
+      @moonsbe.InvalidValue(_, _) => ()
+      _ => fail("expected reserved null rejection")
+    } noraise {
+      _ => fail("custom null bypassed integer normalization")
+    }
+  }
+}

@@ -23,7 +23,7 @@ jobs:
       - name: Install pinned MoonBit toolchain
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh
-          bash /tmp/install-moonbit.sh 0.1.20261023
+          bash /tmp/install-moonbit.sh '0.10.17+d971670cd'
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - run: moon version --all
       - run: moon update

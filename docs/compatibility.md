@@ -53,4 +53,4 @@
 
 - [SBE 1.0 with Errata November 2020](https://www.fixtrading.org/wp-content/uploads/download-manager-files/Simple_Binary_Encoding_V1.0_with_Errata_November_2020.pdf)
 - [参考实现标签 1.35.0](https://github.com/aeron-io/simple-binary-encoding/tree/1.35.0)
-- [本项目固定的上游文件与 JAR 校验值](../interop/UPSTREAM.md)
+- [本项目固定的上游文件与 JAR 校验值](https://github.com/liyun6666/moonsbe/blob/main/interop/UPSTREAM.md)
