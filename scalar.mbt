@@ -7,7 +7,11 @@ fn encoding_null(encoding : TypeEncoding) -> Value raise SbeError {
 }
 
 ///|
-fn check_scalar(encoding : TypeEncoding, value : Value, path : String) -> Unit raise SbeError {
+fn check_scalar(
+  encoding : TypeEncoding,
+  value : Value,
+  path : String,
+) -> Unit raise SbeError {
   let primitive = encoding.primitive
   if primitive == Char {
     let text = value.as_text()
@@ -22,13 +26,25 @@ fn check_scalar(encoding : TypeEncoding, value : Value, path : String) -> Unit r
     let bits = primitive.width() * 8
     let min = match encoding.min_value {
       Some(text) => scalar_from_literal(primitive, text).as_signed()
-      None => if bits == 64 { -9223372036854775807L } else { (0L - (1L << (bits - 1))) + 1L }
+      None =>
+        if bits == 64 {
+          -9223372036854775807L
+        } else {
+          0L - (1L << (bits - 1)) + 1L
+        }
     }
     let max = match encoding.max_value {
       Some(text) => scalar_from_literal(primitive, text).as_signed()
-      None => if bits == 64 { 9223372036854775807L } else { (1L << (bits - 1)) - 1L }
+      None =>
+        if bits == 64 {
+          9223372036854775807L
+        } else {
+          (1L << (bits - 1)) - 1L
+        }
     }
-    if number < min || number > max || same_scalar(value, encoding_null(encoding)) {
+    if number < min ||
+      number > max ||
+      same_scalar(value, encoding_null(encoding)) {
       raise InvalidValue(path, "signed integer is outside its SBE value range")
     }
   } else if primitive.is_float() {
@@ -57,16 +73,29 @@ fn check_scalar(encoding : TypeEncoding, value : Value, path : String) -> Unit r
     }
     let max = match encoding.max_value {
       Some(text) => scalar_from_literal(primitive, text).as_unsigned()
-      None => if primitive.width() == 8 { 0xfffffffffffffffeUL } else { (1UL << (primitive.width() * 8)) - 2UL }
+      None =>
+        if primitive.width() == 8 {
+          0xfffffffffffffffeUL
+        } else {
+          (1UL << (primitive.width() * 8)) - 2UL
+        }
     }
-    if number < min || number > max || same_scalar(Unsigned(number), encoding_null(encoding)) {
-      raise InvalidValue(path, "unsigned integer is outside its SBE value range")
+    if number < min ||
+      number > max ||
+      same_scalar(Unsigned(number), encoding_null(encoding)) {
+      raise InvalidValue(
+        path, "unsigned integer is outside its SBE value range",
+      )
     }
   }
 }
 
 ///|
-fn write_scalar(writer : Writer, primitive : Primitive, value : Value) -> Unit raise SbeError {
+fn write_scalar(
+  writer : Writer,
+  primitive : Primitive,
+  value : Value,
+) -> Unit raise SbeError {
   if primitive == Char {
     writer.write_bytes(@utf8.encode(value.as_text()))
   } else if primitive.is_float() {
@@ -96,7 +125,11 @@ fn read_scalar(reader : Reader, primitive : Primitive) -> Value raise SbeError {
 }
 
 ///|
-fn encode_text(text : String, character_encoding : String, path : String) -> Bytes raise SbeError {
+fn encode_text(
+  text : String,
+  character_encoding : String,
+  path : String,
+) -> Bytes raise SbeError {
   let bytes = @utf8.encode(text)
   if character_encoding == "ASCII" || character_encoding == "US-ASCII" {
     for byte in bytes {
@@ -109,7 +142,10 @@ fn encode_text(text : String, character_encoding : String, path : String) -> Byt
 }
 
 ///|
-fn decode_text(bytes : Bytes, character_encoding : String) -> String raise SbeError {
+fn decode_text(
+  bytes : Bytes,
+  character_encoding : String,
+) -> String raise SbeError {
   if character_encoding == "ASCII" || character_encoding == "US-ASCII" {
     for byte in bytes {
       if byte.to_int() > 127 {
@@ -147,12 +183,19 @@ fn constant_value(schema : Schema, field : FieldDef) -> Value raise SbeError {
         _ => raise InvalidSchema("valueRef target must be an enum", 0)
       }
     }
-    None => match schema.type_def(field.type_name) {
-      Encoded(encoding) => match encoding.constant {
-        Some(text) => if encoding.primitive == Char { Text(text) } else { scalar_from_literal(encoding.primitive, text) }
-        None => raise InvalidSchema("constant field has no value", 0)
+    None =>
+      match schema.type_def(field.type_name) {
+        Encoded(encoding) =>
+          match encoding.constant {
+            Some(text) =>
+              if encoding.primitive == Char {
+                Text(text)
+              } else {
+                scalar_from_literal(encoding.primitive, text)
+              }
+            None => raise InvalidSchema("constant field has no value", 0)
+          }
+        _ => raise InvalidSchema("constant field has no valueRef", 0)
       }
-      _ => raise InvalidSchema("constant field has no valueRef", 0)
-    }
   }
 }

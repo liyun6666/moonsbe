@@ -8,7 +8,7 @@ pub(all) enum Presence {
 ///|
 pub(all) struct TypeEncoding {
   primitive : Primitive
-  length : Int
+  length : Int32
   presence : Presence
   character_encoding : String
   min_value : String?
@@ -21,14 +21,14 @@ pub(all) struct TypeEncoding {
 pub(all) struct EnumCase {
   name : String
   value : String
-  since_version : Int
+  since_version : Int32
 } derive(Debug)
 
 ///|
 pub(all) struct CompositeMember {
   name : String
   type_name : String
-  offset : Int
+  offset : Int32
 } derive(Debug)
 
 ///|
@@ -36,16 +36,16 @@ pub(all) enum TypeDef {
   Encoded(TypeEncoding)
   Enumeration(Primitive, Array[EnumCase], Presence)
   BitSet(Primitive, Array[EnumCase])
-  Composite(Array[CompositeMember], Int)
+  Composite(Array[CompositeMember], Int32)
 } derive(Debug)
 
 ///|
 pub(all) struct FieldDef {
   name : String
-  id : Int
+  id : Int32
   type_name : String
-  offset : Int
-  since_version : Int
+  offset : Int32
+  since_version : Int32
   presence : Presence
   value_ref : String?
 } derive(Debug)
@@ -53,20 +53,20 @@ pub(all) struct FieldDef {
 ///|
 pub(all) struct GroupDef {
   name : String
-  id : Int
-  since_version : Int
+  id : Int32
+  since_version : Int32
   block : BlockDef
   count_primitive : Primitive
-  max_count : Int
+  max_count : Int32
 } derive(Debug)
 
 ///|
 pub(all) struct DataDef {
   name : String
-  id : Int
-  since_version : Int
+  id : Int32
+  since_version : Int32
   length_primitive : Primitive
-  max_length : Int
+  max_length : Int32
   character_encoding : String
 } derive(Debug)
 
@@ -75,22 +75,22 @@ pub(all) struct BlockDef {
   fields : Array[FieldDef]
   groups : Array[GroupDef]
   data : Array[DataDef]
-  block_length : Int
+  block_length : Int32
 } derive(Debug)
 
 ///|
 pub(all) struct MessageDef {
   name : String
-  id : Int
-  since_version : Int
+  id : Int32
+  since_version : Int32
   block : BlockDef
 } derive(Debug)
 
 ///|
 /// A compiled schema. Treat collections as immutable after compilation.
 pub(all) struct Schema {
-  id : Int
-  version : Int
+  id : Int32
+  version : Int32
   package_name : String
   byte_order : ByteOrder
   types : Map[String, TypeDef]
@@ -98,7 +98,7 @@ pub(all) struct Schema {
 } derive(Debug)
 
 ///|
-pub fn Schema::message(self : Schema, id : Int) -> MessageDef raise SbeError {
+pub fn Schema::message(self : Schema, id : Int32) -> MessageDef raise SbeError {
   for message in self.messages {
     if message.id == id {
       return message
@@ -116,19 +116,28 @@ pub fn Schema::type_def(self : Schema, name : String) -> TypeDef raise SbeError 
 }
 
 ///|
-pub fn Schema::encoded_size(self : Schema, name : String) -> Int raise SbeError {
+pub fn Schema::encoded_size(
+  self : Schema,
+  name : String,
+) -> Int32 raise SbeError {
   type_size(self.type_def(name))
 }
 
 ///|
-fn type_size(type_def : TypeDef) -> Int {
+fn type_size(type_def : TypeDef) -> Int32 {
   match type_def {
-    Encoded(encoding) => if encoding.presence == Constant {
-      0
-    } else {
-      encoding.primitive.width() * encoding.length
-    }
-    Enumeration(primitive, _, presence) => if presence == Constant { 0 } else { primitive.width() }
+    Encoded(encoding) =>
+      if encoding.presence == Constant {
+        0
+      } else {
+        encoding.primitive.width() * encoding.length
+      }
+    Enumeration(primitive, _, presence) =>
+      if presence == Constant {
+        0
+      } else {
+        primitive.width()
+      }
     BitSet(primitive, _) => primitive.width()
     Composite(_, length) => length
   }

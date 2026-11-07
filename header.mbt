@@ -1,15 +1,19 @@
 ///|
 /// The standard eight-byte SBE message header, without transport framing.
 pub(all) struct MessageHeader {
-  block_length : Int
-  template_id : Int
-  schema_id : Int
-  version : Int
+  block_length : Int32
+  template_id : Int32
+  schema_id : Int32
+  version : Int32
 } derive(Eq, Debug)
 
 ///|
-pub fn MessageHeader::write(self : MessageHeader, writer : Writer) -> Unit raise SbeError {
-  for value in [self.block_length, self.template_id, self.schema_id, self.version] {
+pub fn MessageHeader::write(
+  self : MessageHeader,
+  writer : Writer,
+) -> Unit raise SbeError {
+  for
+    value in [self.block_length, self.template_id, self.schema_id, self.version] {
     if value < 0 || value > 65535 {
       raise InvalidValue("header", "header values must fit uint16")
     }

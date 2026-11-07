@@ -4,14 +4,14 @@ priv struct XmlNode {
   attributes : Map[String, String]
   children : Array[XmlNode]
   text : String
-  position : Int
+  position : Int32
 }
 
 ///|
 priv struct XmlReader {
   chars : Array[Char]
-  mut pos : Int
-  mut nodes : Int
+  mut pos : Int32
+  mut nodes : Int32
 }
 
 ///|
@@ -65,7 +65,10 @@ fn XmlReader::name(self : XmlReader) -> String raise SbeError {
   }
   while self.pos < self.chars.length() {
     let char = self.chars[self.pos]
-    if !(xml_name_start(char) || char.is_ascii_digit() || char == '.' || char == '-') {
+    if !(xml_name_start(char) ||
+      char.is_ascii_digit() ||
+      char == '.' ||
+      char == '-') {
       break
     }
     result.write_char(char)
@@ -109,10 +112,12 @@ fn XmlReader::entity(self : XmlReader) -> Char raise SbeError {
       let code = @string.parse_int(digits, base~) catch {
         _ => raise InvalidSchema("invalid XML character reference", self.pos)
       }
-      if !(code == 9 || code == 10 || code == 13 ||
-          (code >= 32 && code <= 0xd7ff) ||
-          (code >= 0xe000 && code <= 0xfffd) ||
-          (code >= 0x10000 && code <= 0x10ffff)) {
+      if !(code == 9 ||
+        code == 10 ||
+        code == 13 ||
+        (code >= 32 && code <= 0xd7ff) ||
+        (code >= 0xe000 && code <= 0xfffd) ||
+        (code >= 0x10000 && code <= 0x10ffff)) {
         raise InvalidSchema("invalid XML code point", self.pos)
       }
       match code.to_char() {
@@ -163,7 +168,7 @@ fn XmlReader::comment(self : XmlReader) -> Unit raise SbeError {
 }
 
 ///|
-fn XmlReader::node(self : XmlReader, depth : Int) -> XmlNode raise SbeError {
+fn XmlReader::node(self : XmlReader, depth : Int32) -> XmlNode raise SbeError {
   if depth > 64 || self.nodes >= 20000 {
     raise LimitExceeded("XML schema exceeds depth or node limit")
   }
@@ -177,7 +182,7 @@ fn XmlReader::node(self : XmlReader, depth : Int) -> XmlNode raise SbeError {
     self.space()
     if self.starts("/>") {
       self.consume("/>")
-      return { name, attributes, children: [], text: "", position }
+      return { name, attributes, children: [], text: "", position, }
     }
     if self.starts(">") {
       self.consume(">")
@@ -216,7 +221,9 @@ fn XmlReader::node(self : XmlReader, depth : Int) -> XmlNode raise SbeError {
       }
       self.consume("]]>")
     } else if self.starts("<!") || self.starts("<?") {
-      raise Unsupported("DTD, entity declarations and nested processing instructions")
+      raise Unsupported(
+        "DTD, entity declarations and nested processing instructions",
+      )
     } else if self.peek() == Some('<') {
       children.push(self.node(depth + 1))
     } else if self.peek() == Some('&') {
@@ -233,7 +240,7 @@ fn XmlReader::node(self : XmlReader, depth : Int) -> XmlNode raise SbeError {
   }
   self.space()
   self.consume(">")
-  { name, attributes, children, text: text.to_string(), position }
+  { name, attributes, children, text: text.to_string(), position, }
 }
 
 ///|
@@ -241,8 +248,14 @@ fn parse_xml(text : String) -> XmlNode raise SbeError {
   if text.length() > 2000000 {
     raise LimitExceeded("schema XML exceeds 2 million code units")
   }
-  let normalized = text.replace_all(old="\r\n", new="\n").replace_all(old="\r", new="\n")
-  let reader = XmlReader::{ chars: normalized.iter().to_array(), pos: 0, nodes: 0 }
+  let normalized = text
+    .replace_all(old="\r\n", new="\n")
+    .replace_all(old="\r", new="\n")
+  let reader = XmlReader::{
+    chars: normalized.iter().to_array(),
+    pos: 0,
+    nodes: 0,
+  }
   if reader.peek() == Some('\u{feff}') {
     reader.pos += 1
   }
@@ -287,17 +300,29 @@ fn XmlNode::local_name(self : XmlNode) -> String {
 fn XmlNode::required(self : XmlNode, key : String) -> String raise SbeError {
   match self.attributes.get(key) {
     Some(value) if !value.is_empty() => value
-    _ => raise InvalidSchema("\{self.name} requires attribute \{key}", self.position)
+    _ =>
+      raise InvalidSchema(
+        "\{self.name} requires attribute \{key}",
+        self.position,
+      )
   }
 }
 
 ///|
-fn XmlNode::integer(self : XmlNode, key : String, default~ : Int) -> Int raise SbeError {
+fn XmlNode::integer(
+  self : XmlNode,
+  key : String,
+  default~ : Int32,
+) -> Int32 raise SbeError {
   match self.attributes.get(key) {
     None => default
     Some(value) => {
       let parsed = @string.parse_int(value) catch {
-        _ => raise InvalidSchema("\{key} must be a nonnegative integer", self.position)
+        _ =>
+          raise InvalidSchema(
+            "\{key} must be a nonnegative integer",
+            self.position,
+          )
       }
       if parsed < 0 || parsed > 1048576 {
         raise InvalidSchema("\{key} exceeds supported range", self.position)

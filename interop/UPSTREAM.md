@@ -4,6 +4,7 @@
 - Tag: `1.35.0`
 - Tag object: `29dc5cec8c30135fe19b4121be9d5f5f6ad1ad05`
 - Tool artifact: https://repo.maven.apache.org/maven2/uk/co/real-logic/sbe-all/1.35.0/sbe-all-1.35.0.jar
+- Tool artifact SHA-256 `d11f4bb7c71322e3538613b2da18b11625be400465b29a09db80bc9785cea3ab`
 - License: Apache License 2.0; see the repository LICENSE.
 
 The files under `upstream/` are unmodified copies of these upstream paths:

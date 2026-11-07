@@ -15,10 +15,11 @@ pub(all) enum Value {
 ///|
 pub fn Value::field(self : Value, name : String) -> Value raise SbeError {
   match self {
-    Record(fields) => match fields.get(name) {
-      Some(value) => value
-      None => raise InvalidValue(name, "required field is missing")
-    }
+    Record(fields) =>
+      match fields.get(name) {
+        Some(value) => value
+        None => raise InvalidValue(name, "required field is missing")
+      }
     _ => raise InvalidValue(name, "expected a record")
   }
 }
@@ -52,7 +53,8 @@ pub fn Value::as_unsigned(self : Value) -> UInt64 raise SbeError {
 pub fn Value::as_signed(self : Value) -> Int64 raise SbeError {
   match self {
     Signed(value) => value
-    Unsigned(value) if value <= 0x7fffffffffffffffUL => value.reinterpret_as_int64()
+    Unsigned(value) if value <= 0x7fffffffffffffffUL =>
+      value.reinterpret_as_int64()
     _ => raise InvalidValue("value", "expected a signed integer")
   }
 }
@@ -95,15 +97,17 @@ pub fn to_hex(bytes : Bytes) -> String {
 ///|
 pub fn from_hex(text : String) -> Bytes raise SbeError {
   if text.length() > 33554432 || text.length() % 2 != 0 {
-    raise InvalidValue("hex", "expected an even number of hexadecimal digits within 16 MiB")
+    raise InvalidValue(
+      "hex", "expected an even number of hexadecimal digits within 16 MiB",
+    )
   }
   let bytes : Array[Byte] = []
   let mut first = -1
   for char in text {
     let value = match char {
-      '0'..='9' => char.to_int() - '0'.to_int()
-      'a'..='f' => char.to_int() - 'a'.to_int() + 10
-      'A'..='F' => char.to_int() - 'A'.to_int() + 10
+      '0'..<='9' => char.to_int() - '0'.to_int()
+      'a'..<='f' => char.to_int() - 'a'.to_int() + 10
+      'A'..<='F' => char.to_int() - 'A'.to_int() + 10
       _ => raise InvalidValue("hex", "invalid hexadecimal digit")
     }
     if first < 0 {
@@ -121,16 +125,21 @@ pub fn Value::to_json(self : Value) -> Json {
   match self {
     Signed(value) => Json::string(value.to_string())
     Unsigned(value) => Json::string(value.to_string())
-    Floating(value) => if value.is_nan() {
-      Json::string("NaN")
-    } else if value.is_inf() {
-      Json::string(if value > 0.0 { "Infinity" } else { "-Infinity" })
-    } else { Json::number(value) }
+    Floating(value) =>
+      if value.is_nan() {
+        Json::string("NaN")
+      } else if value.is_inf() {
+        Json::string(if value > 0.0 { "Infinity" } else { "-Infinity" })
+      } else {
+        Json::number(value)
+      }
     Text(value) => Json::string(value)
     Binary(value) => Json::string(to_hex(value))
     Record(fields) => {
       let result : Map[String, Json] = Map([])
-      for name, value in fields { result[name] = value.to_json() }
+      for name, value in fields {
+        result[name] = value.to_json()
+      }
       Json::object(result)
     }
     Sequence(values) => Json::array(values.map(Value::to_json))
@@ -139,7 +148,10 @@ pub fn Value::to_json(self : Value) -> Json {
 }
 
 ///|
-fn scalar_from_literal(primitive : Primitive, text : String) -> Value raise SbeError {
+fn scalar_from_literal(
+  primitive : Primitive,
+  text : String,
+) -> Value raise SbeError {
   if primitive == Char {
     if @utf8.encode(text).length() != 1 {
       raise InvalidValue("char", "expected one ASCII byte")
@@ -152,7 +164,9 @@ fn scalar_from_literal(primitive : Primitive, text : String) -> Value raise SbeE
     }
     Signed(value)
   } else if primitive.is_float() {
-    if text == "NaN" { return Floating(0.0 / 0.0) }
+    if text == "NaN" {
+      return Floating(0.0 / 0.0)
+    }
     let value = @string.parse_double(text) catch {
       _ => raise InvalidValue("float", "invalid floating literal: \{text}")
     }

@@ -43,7 +43,9 @@ test "truncated reads never advance the cursor" {
       assert_eq(available, 1)
     }
     _ => fail("wrong error")
-  } noraise { _ => fail("expected truncation") }
+  } noraise {
+    _ => fail("expected truncation")
+  }
   assert_eq(reader.position(), 0)
 }
 
@@ -53,21 +55,31 @@ test "writer rejects overflow and its configured memory limit" {
   try writer.write_uint(256UL, 1) catch {
     @moonsbe.InvalidValue(_, _) => ()
     _ => fail("wrong overflow error")
-  } noraise { _ => fail("overflow must be rejected") }
+  } noraise {
+    _ => fail("overflow must be rejected")
+  }
   writer.write_uint(42UL, 2)
   try writer.write_uint(1UL, 1) catch {
     @moonsbe.LimitExceeded(_) => ()
     _ => fail("wrong limit error")
-  } noraise { _ => fail("writer limit must be enforced") }
+  } noraise {
+    _ => fail("writer limit must be enforced")
+  }
 }
 
 ///|
 test "standard header has published little endian layout" {
   let writer = @moonsbe.Writer::new()
   let header : @moonsbe.MessageHeader = {
-    block_length: 47, template_id: 1, schema_id: 1, version: 0,
+    block_length: 47,
+    template_id: 1,
+    schema_id: 1,
+    version: 0,
   }
   header.write(writer)
   assert_eq(writer.to_bytes(), b"\x2f\x00\x01\x00\x01\x00\x00\x00")
-  assert_eq(@moonsbe.MessageHeader::read(@moonsbe.Reader::new(writer.to_bytes())), header)
+  assert_eq(
+    @moonsbe.MessageHeader::read(@moonsbe.Reader::new(writer.to_bytes())),
+    header,
+  )
 }

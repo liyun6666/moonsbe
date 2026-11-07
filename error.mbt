@@ -1,9 +1,9 @@
 ///|
 /// Structured errors include an XML position or byte offset when available.
 pub suberror SbeError {
-  InvalidSchema(String, Int)
+  InvalidSchema(String, Int32)
   Unsupported(String)
-  Truncated(Int, Int, Int)
+  Truncated(Int32, Int32, Int32)
   InvalidValue(String, String)
   InvalidMessage(String)
   LimitExceeded(String)
@@ -31,7 +31,7 @@ pub(all) enum Primitive {
 } derive(Eq, Debug)
 
 ///|
-pub fn Primitive::width(self : Primitive) -> Int {
+pub fn Primitive::width(self : Primitive) -> Int32 {
   match self {
     Char | Int8 | UInt8 => 1
     Int16 | UInt16 => 2

@@ -5,7 +5,9 @@
 let compiled_schema : @sbe.Schema = try! @sbe.parse_schema(
   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sbe:messageSchema xmlns:sbe=\"http://fixprotocol.io/2016/sbe\"\n                   xmlns:xi=\"http://www.w3.org/2001/XInclude\"\n                   package=\"baseline\"\n                   id=\"1\"\n                   version=\"0\"\n                   semanticVersion=\"5.2\"\n                   description=\"Example base schema which can be extended.\"\n                   byteOrder=\"littleEndian\">\n    <xi:include href=\"common-types.xml\"/>\n    <types>\n        <type name=\"ModelYear\" primitiveType=\"uint16\"/>\n        <type name=\"VehicleCode\" primitiveType=\"char\" length=\"6\" characterEncoding=\"ASCII\"/>\n        <type name=\"Ron\" primitiveType=\"uint8\" minValue=\"90\" maxValue=\"110\"/>\n        <type name=\"someNumbers\" primitiveType=\"uint32\" length=\"4\"/>\n        <type name=\"Percentage\" primitiveType=\"int8\" minValue=\"0\" maxValue=\"100\"/>\n        <composite name=\"Booster\">\n            <enum name=\"BoostType\" encodingType=\"char\">\n                <validValue name=\"TURBO\">T</validValue>\n                <validValue name=\"SUPERCHARGER\">S</validValue>\n                <validValue name=\"NITROUS\">N</validValue>\n                <validValue name=\"KERS\">K</validValue>\n            </enum>\n            <type name=\"horsePower\" primitiveType=\"uint8\"/>\n        </composite>\n        <composite name=\"Engine\">\n            <type name=\"capacity\" primitiveType=\"uint16\"/>\n            <type name=\"numCylinders\" primitiveType=\"uint8\"/>\n            <type name=\"maxRpm\" primitiveType=\"uint16\" presence=\"constant\">9000</type>\n            <type name=\"manufacturerCode\" primitiveType=\"char\" length=\"3\"/>\n            <type name=\"fuel\" primitiveType=\"char\" presence=\"constant\">Petrol</type>\n            <ref name=\"efficiency\" type=\"Percentage\"/>\n            <ref name=\"boosterEnabled\" type=\"BooleanType\"/>\n            <ref name=\"booster\" type=\"Booster\"/>\n        </composite>\n        <enum name=\"BooleanType\" encodingType=\"uint8\" description=\"Boolean Type.\">\n            <validValue name=\"F\" description=\"False value representation.\">0</validValue>\n            <validValue name=\"T\" description=\"True value representation.\">1</validValue>\n        </enum>\n        <enum name=\"Model\" encodingType=\"char\">\n            <validValue name=\"A\">A</validValue>\n            <validValue name=\"B\">B</validValue>\n            <validValue name=\"C\">C</validValue>\n        </enum>\n        <set name=\"OptionalExtras\" encodingType=\"uint8\">\n            <choice name=\"sunRoof\">0</choice>\n            <choice name=\"sportsPack\">1</choice>\n            <choice name=\"cruiseControl\">2</choice>\n        </set>\n    </types>\n    <sbe:message name=\"Car\" id=\"1\" description=\"Description of a basic Car\">\n        <field name=\"serialNumber\" id=\"1\" type=\"uint64\"/>\n        <field name=\"modelYear\" id=\"2\" type=\"ModelYear\"/>\n        <field name=\"available\" id=\"3\" type=\"BooleanType\"/>\n        <field name=\"code\" id=\"4\" type=\"Model\"/>\n        <field name=\"someNumbers\" id=\"5\" type=\"someNumbers\"/>\n        <field name=\"vehicleCode\" id=\"6\" type=\"VehicleCode\"/>\n        <field name=\"extras\" id=\"7\" type=\"OptionalExtras\"/>\n        <field name=\"discountedModel\" id=\"8\" type=\"Model\" presence=\"constant\" valueRef=\"Model.C\"/>\n        <field name=\"engine\" id=\"9\" type=\"Engine\"/>\n        <group name=\"fuelFigures\" id=\"10\" dimensionType=\"groupSizeEncoding\">\n            <field name=\"speed\" id=\"11\" type=\"uint16\"/>\n            <field name=\"mpg\" id=\"12\" type=\"float\"/>\n            <data name=\"usageDescription\" id=\"200\" type=\"varAsciiEncoding\"/>\n        </group>\n        <group name=\"performanceFigures\" id=\"13\" dimensionType=\"groupSizeEncoding\">\n            <field name=\"octaneRating\" id=\"14\" type=\"Ron\"/>\n            <group name=\"acceleration\" id=\"15\" dimensionType=\"groupSizeEncoding\">\n                <field name=\"mph\" id=\"16\" type=\"uint16\"/>\n                <field name=\"seconds\" id=\"17\" type=\"float\"/>\n            </group>\n        </group>\n        <data name=\"manufacturer\" id=\"18\" type=\"varStringEncoding\"/>\n        <data name=\"model\" id=\"19\" type=\"varStringEncoding\"/>\n        <data name=\"activationCode\" id=\"20\" type=\"varAsciiEncoding\"/>\n    </sbe:message>\n</sbe:messageSchema>\n",
   includes=Map([
-    ("common-types.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<types>\n    <composite name=\"messageHeader\" description=\"Message identifiers and length of message root.\">\n        <type name=\"blockLength\" primitiveType=\"uint16\"/>\n        <type name=\"templateId\" primitiveType=\"uint16\"/>\n        <type name=\"schemaId\" primitiveType=\"uint16\"/>\n        <type name=\"version\" primitiveType=\"uint16\"/>\n    </composite>\n    <composite name=\"groupSizeEncoding\" description=\"Repeating group dimensions.\">\n        <type name=\"blockLength\" primitiveType=\"uint16\"/>\n        <type name=\"numInGroup\" primitiveType=\"uint16\"/>\n    </composite>\n    <composite name=\"varStringEncoding\" description=\"Variable length UTF-8 String.\">\n        <type name=\"length\" primitiveType=\"uint32\" maxValue=\"1073741824\"/>\n        <type name=\"varData\" primitiveType=\"uint8\" length=\"0\" characterEncoding=\"UTF-8\"/>\n    </composite>\n    <composite name=\"varAsciiEncoding\" description=\"Variable length ASCII String.\">\n        <type name=\"length\" primitiveType=\"uint32\" maxValue=\"1073741824\"/>\n        <type name=\"varData\" primitiveType=\"uint8\" length=\"0\" characterEncoding=\"ASCII\"/>\n    </composite>\n    <composite name=\"varDataEncoding\" description=\"Variable length binary blob.\">\n        <type name=\"length\" primitiveType=\"uint32\" maxValue=\"1073741824\"/>\n        <type name=\"varData\" primitiveType=\"uint8\" length=\"0\"/>\n    </composite>\n</types>\n"),
+    (
+      "common-types.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<types>\n    <composite name=\"messageHeader\" description=\"Message identifiers and length of message root.\">\n        <type name=\"blockLength\" primitiveType=\"uint16\"/>\n        <type name=\"templateId\" primitiveType=\"uint16\"/>\n        <type name=\"schemaId\" primitiveType=\"uint16\"/>\n        <type name=\"version\" primitiveType=\"uint16\"/>\n    </composite>\n    <composite name=\"groupSizeEncoding\" description=\"Repeating group dimensions.\">\n        <type name=\"blockLength\" primitiveType=\"uint16\"/>\n        <type name=\"numInGroup\" primitiveType=\"uint16\"/>\n    </composite>\n    <composite name=\"varStringEncoding\" description=\"Variable length UTF-8 String.\">\n        <type name=\"length\" primitiveType=\"uint32\" maxValue=\"1073741824\"/>\n        <type name=\"varData\" primitiveType=\"uint8\" length=\"0\" characterEncoding=\"UTF-8\"/>\n    </composite>\n    <composite name=\"varAsciiEncoding\" description=\"Variable length ASCII String.\">\n        <type name=\"length\" primitiveType=\"uint32\" maxValue=\"1073741824\"/>\n        <type name=\"varData\" primitiveType=\"uint8\" length=\"0\" characterEncoding=\"ASCII\"/>\n    </composite>\n    <composite name=\"varDataEncoding\" description=\"Variable length binary blob.\">\n        <type name=\"length\" primitiveType=\"uint32\" maxValue=\"1073741824\"/>\n        <type name=\"varData\" primitiveType=\"uint8\" length=\"0\"/>\n    </composite>\n</types>\n",
+    ),
   ]),
 )
 
@@ -24,7 +26,9 @@ pub fn BooleanType::to_value(self : BooleanType) -> @sbe.Value {
 }
 
 ///|
-pub fn BooleanType::from_value(value : @sbe.Value) -> BooleanType raise @sbe.SbeError {
+pub fn BooleanType::from_value(
+  value : @sbe.Value,
+) -> BooleanType raise @sbe.SbeError {
   match value.as_text() {
     "F" => F
     "T" => T
@@ -77,7 +81,9 @@ pub fn BoosterBoostType::to_value(self : BoosterBoostType) -> @sbe.Value {
 }
 
 ///|
-pub fn BoosterBoostType::from_value(value : @sbe.Value) -> BoosterBoostType raise @sbe.SbeError {
+pub fn BoosterBoostType::from_value(
+  value : @sbe.Value,
+) -> BoosterBoostType raise @sbe.SbeError {
   match value.as_text() {
     "TURBO" => TURBO
     "SUPERCHARGER" => SUPERCHARGER
@@ -160,7 +166,9 @@ pub fn CarFuelFigures::to_value(self : CarFuelFigures) -> @sbe.Value {
 }
 
 ///|
-pub fn CarFuelFigures::from_value(value : @sbe.Value) -> CarFuelFigures raise @sbe.SbeError {
+pub fn CarFuelFigures::from_value(
+  value : @sbe.Value,
+) -> CarFuelFigures raise @sbe.SbeError {
   {
     f_speed: value.field("speed").as_unsigned(),
     f_mpg: value.field("mpg").as_float(),
@@ -175,7 +183,9 @@ pub(all) struct CarPerformanceFiguresAcceleration {
 } derive(Debug)
 
 ///|
-pub fn CarPerformanceFiguresAcceleration::to_value(self : CarPerformanceFiguresAcceleration) -> @sbe.Value {
+pub fn CarPerformanceFiguresAcceleration::to_value(
+  self : CarPerformanceFiguresAcceleration,
+) -> @sbe.Value {
   let fields : Map[String, @sbe.Value] = Map([])
   fields["mph"] = @sbe.Unsigned(self.f_mph)
   fields["seconds"] = @sbe.Floating(self.f_seconds)
@@ -183,7 +193,9 @@ pub fn CarPerformanceFiguresAcceleration::to_value(self : CarPerformanceFiguresA
 }
 
 ///|
-pub fn CarPerformanceFiguresAcceleration::from_value(value : @sbe.Value) -> CarPerformanceFiguresAcceleration raise @sbe.SbeError {
+pub fn CarPerformanceFiguresAcceleration::from_value(
+  value : @sbe.Value,
+) -> CarPerformanceFiguresAcceleration raise @sbe.SbeError {
   {
     f_mph: value.field("mph").as_unsigned(),
     f_seconds: value.field("seconds").as_float(),
@@ -197,18 +209,27 @@ pub(all) struct CarPerformanceFigures {
 } derive(Debug)
 
 ///|
-pub fn CarPerformanceFigures::to_value(self : CarPerformanceFigures) -> @sbe.Value {
+pub fn CarPerformanceFigures::to_value(
+  self : CarPerformanceFigures,
+) -> @sbe.Value {
   let fields : Map[String, @sbe.Value] = Map([])
   fields["octaneRating"] = @sbe.Unsigned(self.f_octane_rating)
-  fields["acceleration"] = @sbe.Sequence(self.f_acceleration.map((item) => item.to_value()))
+  fields["acceleration"] = @sbe.Sequence(
+    self.f_acceleration.map(item => item.to_value()),
+  )
   @sbe.Record(fields)
 }
 
 ///|
-pub fn CarPerformanceFigures::from_value(value : @sbe.Value) -> CarPerformanceFigures raise @sbe.SbeError {
+pub fn CarPerformanceFigures::from_value(
+  value : @sbe.Value,
+) -> CarPerformanceFigures raise @sbe.SbeError {
   {
     f_octane_rating: value.field("octaneRating").as_unsigned(),
-    f_acceleration: value.field("acceleration").as_sequence().map((item) => CarPerformanceFiguresAcceleration::from_value(item)),
+    f_acceleration: value
+    .field("acceleration")
+    .as_sequence()
+    .map(item => CarPerformanceFiguresAcceleration::from_value(item)),
   }
 }
 
@@ -236,12 +257,18 @@ pub fn Car::to_value(self : Car) -> @sbe.Value {
   fields["modelYear"] = @sbe.Unsigned(self.f_model_year)
   fields["available"] = self.f_available.to_value()
   fields["code"] = self.f_code.to_value()
-  fields["someNumbers"] = @sbe.Sequence(self.f_some_numbers.map((item) => @sbe.Unsigned(item)))
+  fields["someNumbers"] = @sbe.Sequence(
+    self.f_some_numbers.map(item => @sbe.Unsigned(item)),
+  )
   fields["vehicleCode"] = @sbe.Text(self.f_vehicle_code)
-  fields["extras"] = @sbe.Sequence(self.f_extras.map((item) => @sbe.Text(item)))
+  fields["extras"] = @sbe.Sequence(self.f_extras.map(item => @sbe.Text(item)))
   fields["engine"] = self.f_engine.to_value()
-  fields["fuelFigures"] = @sbe.Sequence(self.f_fuel_figures.map((item) => item.to_value()))
-  fields["performanceFigures"] = @sbe.Sequence(self.f_performance_figures.map((item) => item.to_value()))
+  fields["fuelFigures"] = @sbe.Sequence(
+    self.f_fuel_figures.map(item => item.to_value()),
+  )
+  fields["performanceFigures"] = @sbe.Sequence(
+    self.f_performance_figures.map(item => item.to_value()),
+  )
   fields["manufacturer"] = @sbe.Text(self.f_manufacturer)
   fields["model"] = @sbe.Text(self.f_model)
   fields["activationCode"] = @sbe.Text(self.f_activation_code)
@@ -255,12 +282,21 @@ pub fn Car::from_value(value : @sbe.Value) -> Car raise @sbe.SbeError {
     f_model_year: value.field("modelYear").as_unsigned(),
     f_available: BooleanType::from_value(value.field("available")),
     f_code: Model::from_value(value.field("code")),
-    f_some_numbers: value.field("someNumbers").as_sequence().map((item) => item.as_unsigned()),
+    f_some_numbers: value
+    .field("someNumbers")
+    .as_sequence()
+    .map(item => item.as_unsigned()),
     f_vehicle_code: value.field("vehicleCode").as_text(),
-    f_extras: value.field("extras").as_sequence().map((item) => item.as_text()),
+    f_extras: value.field("extras").as_sequence().map(item => item.as_text()),
     f_engine: Engine::from_value(value.field("engine")),
-    f_fuel_figures: value.field("fuelFigures").as_sequence().map((item) => CarFuelFigures::from_value(item)),
-    f_performance_figures: value.field("performanceFigures").as_sequence().map((item) => CarPerformanceFigures::from_value(item)),
+    f_fuel_figures: value
+    .field("fuelFigures")
+    .as_sequence()
+    .map(item => CarFuelFigures::from_value(item)),
+    f_performance_figures: value
+    .field("performanceFigures")
+    .as_sequence()
+    .map(item => CarPerformanceFigures::from_value(item)),
     f_manufacturer: value.field("manufacturer").as_text(),
     f_model: value.field("model").as_text(),
     f_activation_code: value.field("activationCode").as_text(),
@@ -268,7 +304,10 @@ pub fn Car::from_value(value : @sbe.Value) -> Car raise @sbe.SbeError {
 }
 
 ///|
-pub fn Car::encode(self : Car, version? : Int = 0) -> Bytes raise @sbe.SbeError {
+pub fn Car::encode(
+  self : Car,
+  version~ : Int32 = 0,
+) -> Bytes raise @sbe.SbeError {
   @sbe.encode(compiled_schema, 1, self.to_value(), version~)
 }
 
@@ -280,4 +319,3 @@ pub fn Car::decode(bytes : Bytes) -> Car raise @sbe.SbeError {
   }
   Car::from_value(message.value)
 }
-

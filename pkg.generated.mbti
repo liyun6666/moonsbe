@@ -1,0 +1,232 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "liyun6666/moonsbe"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn compare_schemas(Schema, Schema) -> EvolutionReport raise SbeError
+
+pub fn decode(Schema, Bytes, max_entries? : Int32) -> DecodedMessage raise SbeError
+
+pub fn encode(Schema, Int32, Value, version? : Int32, max_bytes? : Int32) -> Bytes raise SbeError
+
+pub fn from_hex(String) -> Bytes raise SbeError
+
+pub fn generate_moonbit(String, includes? : Map[String, String]) -> String raise SbeError
+
+pub fn parse_schema(String, includes? : Map[String, String]) -> Schema raise SbeError
+
+pub fn schema_include_names(String) -> Array[String] raise SbeError
+
+pub fn to_hex(Bytes) -> String
+
+pub fn value_error(String, String) -> SbeError
+
+pub fn value_from_json(Schema, Int32, String) -> Value raise SbeError
+
+// Errors
+pub suberror SbeError {
+  InvalidSchema(String, Int32)
+  Unsupported(String)
+  Truncated(Int32, Int32, Int32)
+  InvalidValue(String, String)
+  InvalidMessage(String)
+  LimitExceeded(String)
+} derive(@debug.Debug)
+
+// Types and methods
+pub(all) struct BlockDef {
+  fields : Array[FieldDef]
+  groups : Array[GroupDef]
+  data : Array[DataDef]
+  block_length : Int32
+} derive(@debug.Debug)
+
+pub(all) enum ByteOrder {
+  LittleEndian
+  BigEndian
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CompositeMember {
+  name : String
+  type_name : String
+  offset : Int32
+} derive(@debug.Debug)
+
+pub(all) struct DataDef {
+  name : String
+  id : Int32
+  since_version : Int32
+  length_primitive : Primitive
+  max_length : Int32
+  character_encoding : String
+} derive(@debug.Debug)
+
+pub(all) struct DecodedMessage {
+  header : MessageHeader
+  value : Value
+} derive(@debug.Debug)
+
+pub(all) struct EnumCase {
+  name : String
+  value : String
+  since_version : Int32
+} derive(@debug.Debug)
+
+pub(all) struct EvolutionReport {
+  old_version : Int32
+  new_version : Int32
+  old_reads_new : Bool
+  new_reads_old : Bool
+  differences : Array[SchemaDifference]
+} derive(ToJson, @debug.Debug)
+
+pub(all) struct FieldDef {
+  name : String
+  id : Int32
+  type_name : String
+  offset : Int32
+  since_version : Int32
+  presence : Presence
+  value_ref : String?
+} derive(@debug.Debug)
+
+pub(all) struct GroupDef {
+  name : String
+  id : Int32
+  since_version : Int32
+  block : BlockDef
+  count_primitive : Primitive
+  max_count : Int32
+} derive(@debug.Debug)
+
+pub(all) struct MessageDef {
+  name : String
+  id : Int32
+  since_version : Int32
+  block : BlockDef
+} derive(@debug.Debug)
+
+pub(all) struct MessageHeader {
+  block_length : Int32
+  template_id : Int32
+  schema_id : Int32
+  version : Int32
+} derive(Eq, @debug.Debug)
+pub fn MessageHeader::read(Reader) -> Self raise SbeError
+pub fn MessageHeader::write(Self, Writer) -> Unit raise SbeError
+
+pub(all) enum Presence {
+  Required
+  Optional
+  Constant
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Primitive {
+  Char
+  Int8
+  UInt8
+  Int16
+  UInt16
+  Int32
+  UInt32
+  Int64
+  UInt64
+  Float32
+  Float64
+} derive(Eq, @debug.Debug)
+pub fn Primitive::is_float(Self) -> Bool
+pub fn Primitive::is_signed(Self) -> Bool
+pub fn Primitive::parse(String) -> Self raise SbeError
+pub fn Primitive::width(Self) -> Int32
+
+pub struct Reader {
+  bytes : Bytes
+  order : ByteOrder
+  mut position : Int32
+}
+pub fn Reader::new(Bytes, order? : ByteOrder) -> Self
+pub fn Reader::position(Self) -> Int32
+pub fn Reader::read_bytes(Self, Int32) -> Bytes raise SbeError
+pub fn Reader::read_float(Self, Int32) -> Double raise SbeError
+pub fn Reader::read_int(Self, Int32) -> Int64 raise SbeError
+pub fn Reader::read_uint(Self, Int32) -> UInt64 raise SbeError
+pub fn Reader::remaining(Self) -> Int32
+pub fn Reader::seek(Self, Int32) -> Unit raise SbeError
+
+pub(all) struct Schema {
+  id : Int32
+  version : Int32
+  package_name : String
+  byte_order : ByteOrder
+  types : Map[String, TypeDef]
+  messages : Array[MessageDef]
+} derive(@debug.Debug)
+pub fn Schema::encoded_size(Self, String) -> Int32 raise SbeError
+pub fn Schema::message(Self, Int32) -> MessageDef raise SbeError
+pub fn Schema::type_def(Self, String) -> TypeDef raise SbeError
+
+pub(all) struct SchemaDifference {
+  direction : String
+  code : String
+  path : String
+  detail : String
+} derive(ToJson, @debug.Debug)
+
+pub(all) enum TypeDef {
+  Encoded(TypeEncoding)
+  Enumeration(Primitive, Array[EnumCase], Presence)
+  BitSet(Primitive, Array[EnumCase])
+  Composite(Array[CompositeMember], Int32)
+} derive(@debug.Debug)
+
+pub(all) struct TypeEncoding {
+  primitive : Primitive
+  length : Int32
+  presence : Presence
+  character_encoding : String
+  min_value : String?
+  max_value : String?
+  null_value : String?
+  constant : String?
+} derive(@debug.Debug)
+
+pub(all) enum Value {
+  Signed(Int64)
+  Unsigned(UInt64)
+  Floating(Double)
+  Text(String)
+  Binary(Bytes)
+  Record(Map[String, Value])
+  Sequence(Array[Value])
+  Absent
+} derive(@debug.Debug)
+pub fn Value::as_binary(Self) -> Bytes raise SbeError
+pub fn Value::as_float(Self) -> Double raise SbeError
+pub fn Value::as_record(Self) -> Map[String, Self] raise SbeError
+pub fn Value::as_sequence(Self) -> Array[Self] raise SbeError
+pub fn Value::as_signed(Self) -> Int64 raise SbeError
+pub fn Value::as_text(Self) -> String raise SbeError
+pub fn Value::as_unsigned(Self) -> UInt64 raise SbeError
+pub fn Value::field(Self, String) -> Self raise SbeError
+pub fn Value::to_json(Self) -> Json
+
+pub struct Writer {
+  bytes : Array[Byte]
+  order : ByteOrder
+  limit : Int32
+}
+pub fn Writer::new(order? : ByteOrder, limit? : Int32) -> Self
+pub fn Writer::pad_to(Self, Int32) -> Unit raise SbeError
+pub fn Writer::position(Self) -> Int32
+pub fn Writer::to_bytes(Self) -> Bytes
+pub fn Writer::write_bytes(Self, Bytes) -> Unit raise SbeError
+pub fn Writer::write_float(Self, Double, Int32) -> Unit raise SbeError
+pub fn Writer::write_int(Self, Int64, Int32) -> Unit raise SbeError
+pub fn Writer::write_uint(Self, UInt64, Int32) -> Unit raise SbeError
+
+// Type aliases
+
+// Traits

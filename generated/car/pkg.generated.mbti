@@ -1,0 +1,100 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "liyun6666/moonsbe/generated/car"
+
+import {
+  "liyun6666/moonsbe",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum BooleanType {
+  F
+  T
+} derive(Eq, @debug.Debug)
+pub fn BooleanType::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn BooleanType::to_value(Self) -> @moonsbe.Value
+
+pub(all) struct Booster {
+  f_boost_type : BoosterBoostType
+  f_horse_power : UInt64
+} derive(@debug.Debug)
+pub fn Booster::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn Booster::to_value(Self) -> @moonsbe.Value
+
+pub(all) enum BoosterBoostType {
+  TURBO
+  SUPERCHARGER
+  NITROUS
+  KERS
+} derive(Eq, @debug.Debug)
+pub fn BoosterBoostType::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn BoosterBoostType::to_value(Self) -> @moonsbe.Value
+
+pub(all) struct Car {
+  f_serial_number : UInt64
+  f_model_year : UInt64
+  f_available : BooleanType
+  f_code : Model
+  f_some_numbers : Array[UInt64]
+  f_vehicle_code : String
+  f_extras : Array[String]
+  f_engine : Engine
+  f_fuel_figures : Array[CarFuelFigures]
+  f_performance_figures : Array[CarPerformanceFigures]
+  f_manufacturer : String
+  f_model : String
+  f_activation_code : String
+} derive(@debug.Debug)
+pub fn Car::decode(Bytes) -> Self raise @moonsbe.SbeError
+pub fn Car::encode(Self, version? : Int32) -> Bytes raise @moonsbe.SbeError
+pub fn Car::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn Car::to_value(Self) -> @moonsbe.Value
+
+pub(all) struct CarFuelFigures {
+  f_speed : UInt64
+  f_mpg : Double
+  f_usage_description : String
+} derive(@debug.Debug)
+pub fn CarFuelFigures::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn CarFuelFigures::to_value(Self) -> @moonsbe.Value
+
+pub(all) struct CarPerformanceFigures {
+  f_octane_rating : UInt64
+  f_acceleration : Array[CarPerformanceFiguresAcceleration]
+} derive(@debug.Debug)
+pub fn CarPerformanceFigures::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn CarPerformanceFigures::to_value(Self) -> @moonsbe.Value
+
+pub(all) struct CarPerformanceFiguresAcceleration {
+  f_mph : UInt64
+  f_seconds : Double
+} derive(@debug.Debug)
+pub fn CarPerformanceFiguresAcceleration::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn CarPerformanceFiguresAcceleration::to_value(Self) -> @moonsbe.Value
+
+pub(all) struct Engine {
+  f_capacity : UInt64
+  f_num_cylinders : UInt64
+  f_manufacturer_code : String
+  f_efficiency : Int64
+  f_booster_enabled : BooleanType
+  f_booster : Booster
+} derive(@debug.Debug)
+pub fn Engine::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn Engine::to_value(Self) -> @moonsbe.Value
+
+pub(all) enum Model {
+  A
+  B
+  C
+} derive(Eq, @debug.Debug)
+pub fn Model::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn Model::to_value(Self) -> @moonsbe.Value
+
+// Type aliases
+
+// Traits

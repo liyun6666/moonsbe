@@ -1,5 +1,10 @@
 ///|
-fn test_schema(body : String, types? : String = "", order? : String = "littleEndian", version? : Int = 0) -> @moonsbe.Schema raise {
+fn test_schema(
+  body : String,
+  types~ : String = "",
+  order~ : String = "littleEndian",
+  version~ : Int32 = 0,
+) -> @moonsbe.Schema raise {
   @moonsbe.parse_schema(
     "<sbe:messageSchema xmlns:sbe=\"http://fixprotocol.io/2016/sbe\" id=\"7\" version=\"\{version}\" byteOrder=\"\{order}\"><types><composite name=\"messageHeader\"><type name=\"blockLength\" primitiveType=\"uint16\"/><type name=\"templateId\" primitiveType=\"uint16\"/><type name=\"schemaId\" primitiveType=\"uint16\"/><type name=\"version\" primitiveType=\"uint16\"/></composite>\{types}</types><sbe:message name=\"Sample\" id=\"1\">\{body}</sbe:message></sbe:messageSchema>",
   )
@@ -32,29 +37,51 @@ test "invalid schema references and duplicate attributes are rejected" {
   try test_schema("<field name=\"bad\" id=\"1\" type=\"Missing\"/>") catch {
     @moonsbe.InvalidSchema(_, _) => ()
     _ => fail("expected invalid schema")
-  } noraise { _ => fail("unknown type must fail") }
+  } noraise {
+    _ => fail("unknown type must fail")
+  }
   try @moonsbe.parse_schema("<messageSchema id=\"1\" id=\"2\"/>") catch {
     @moonsbe.InvalidSchema(_, _) => ()
     _ => fail("expected invalid XML")
-  } noraise { _ => fail("duplicate XML attributes must fail") }
+  } noraise {
+    _ => fail("duplicate XML attributes must fail")
+  }
 }
 
 ///|
 test "DTD and missing XInclude are explicit failures" {
-  try @moonsbe.parse_schema("<!DOCTYPE x [<!ENTITY y SYSTEM 'file:///secret'>]><messageSchema/>") catch {
+  try
+    @moonsbe.parse_schema(
+      "<!DOCTYPE x [<!ENTITY y SYSTEM 'file:///secret'>]><messageSchema/>",
+    )
+  catch {
     @moonsbe.Unsupported(_) => ()
     _ => fail("expected unsupported DTD")
-  } noraise { _ => fail("DTD must be rejected") }
-  try @moonsbe.parse_schema("<messageSchema id=\"1\"><include href=\"missing.xml\"/></messageSchema>") catch {
+  } noraise {
+    _ => fail("DTD must be rejected")
+  }
+  try
+    @moonsbe.parse_schema(
+      "<messageSchema id=\"1\"><include href=\"missing.xml\"/></messageSchema>",
+    )
+  catch {
     @moonsbe.InvalidSchema(_, _) => ()
     _ => fail("expected missing resource")
-  } noraise { _ => fail("include must not be ignored") }
+  } noraise {
+    _ => fail("include must not be ignored")
+  }
 }
 
 ///|
 test "overlapping fields and fields after variable data are rejected" {
-  try test_schema("<field name=\"a\" id=\"1\" type=\"uint32\"/><field name=\"b\" id=\"2\" type=\"uint16\" offset=\"2\"/>") catch {
+  try
+    test_schema(
+      "<field name=\"a\" id=\"1\" type=\"uint32\"/><field name=\"b\" id=\"2\" type=\"uint16\" offset=\"2\"/>",
+    )
+  catch {
     @moonsbe.InvalidSchema(_, _) => ()
     _ => fail("expected overlap")
-  } noraise { _ => fail("overlap must fail") }
+  } noraise {
+    _ => fail("overlap must fail")
+  }
 }

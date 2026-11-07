@@ -1,5 +1,5 @@
 import {
-  "liyun6666/moonsbe/generated/car" @car,
+  "liyun6666/moonsbe/generated/car",
   "moonbitlang/x/fs",
   "moonbitlang/core/env",
 }

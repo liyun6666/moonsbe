@@ -19,7 +19,7 @@ repository = "https://github.com/liyun6666/moonsbe"
 
 license = "Apache-2.0"
 
-keywords = ["sbe", "binary", "codec", "codegen", "interoperability"]
+keywords = [ "sbe", "binary", "codec", "codegen", "interoperability" ]
 
 preferred_target = "js"
 
