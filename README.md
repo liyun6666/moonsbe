@@ -94,7 +94,7 @@ moon run tools/interop.mbtx
 moon run tools/stats.mbtx
 ```
 
-统计将手写实现与测试分开，排除生成代码、上游 Java/XML、接口文件、工具脚本、文档与构建结果。测试覆盖截断、越界、整数范围、空值、名称冲突、嵌套组、字符编码和版本变化。`implicit_impl_as_method` 为当前 MoonBit 派生方法迁移告警，其余告警作为错误处理。
+统计脚本需要 ripgrep，将手写实现与测试分开，排除生成代码、上游 Java/XML、接口文件、工具脚本、文档与构建结果。测试覆盖截断、越界、整数范围、空值、名称冲突、嵌套组、字符编码和版本变化。`implicit_impl_as_method` 为当前 MoonBit 派生方法迁移告警，其余告警作为错误处理。
 
 ## 来源与许可证
 

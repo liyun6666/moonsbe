@@ -37,7 +37,10 @@ jobs:
       - name: Check generated source reproducibility
         run: git diff --exit-code -- generated/car/messages.mbt
       - name: Count handwritten MoonBit code
-        run: moon run tools/stats.mbtx
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ripgrep
+          moon run tools/stats.mbtx
       - name: Save interoperability evidence
         if: always()
         uses: actions/upload-artifact@v4
