@@ -53,6 +53,7 @@ pub(all) struct CompositeMember {
   name : String
   type_name : String
   offset : Int32
+  since_version : Int32
 } derive(@debug.Debug)
 
 pub(all) struct DataDef {
@@ -93,6 +94,30 @@ pub(all) struct FieldDef {
   value_ref : String?
 } derive(@debug.Debug)
 
+pub struct FixedBlock {
+  bytes : Bytes
+  start : Int32
+  length : Int32
+  order : ByteOrder
+}
+pub fn FixedBlock::float_at(Self, Int32, Int32) -> Double raise SbeError
+pub fn FixedBlock::int_at(Self, Int32, Int32) -> Int64 raise SbeError
+pub fn FixedBlock::new(Bytes, Int32, Int32, ByteOrder) -> Self raise SbeError
+pub fn FixedBlock::uint_at(Self, Int32, Int32) -> UInt64 raise SbeError
+
+pub(all) struct FrameLayout {
+  size : Int32
+  members : Array[FrameMember]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct FrameMember {
+  name : String
+  offset : Int32
+  primitive : Primitive
+  min_value : Int32
+  max_value : Int32
+} derive(Eq, @debug.Debug)
+
 pub(all) struct GroupDef {
   name : String
   id : Int32
@@ -100,6 +125,7 @@ pub(all) struct GroupDef {
   block : BlockDef
   count_primitive : Primitive
   max_count : Int32
+  dimension : FrameLayout
 } derive(@debug.Debug)
 
 pub(all) struct MessageDef {
@@ -161,6 +187,7 @@ pub(all) struct Schema {
   version : Int32
   package_name : String
   byte_order : ByteOrder
+  header_layout : FrameLayout
   types : Map[String, TypeDef]
   messages : Array[MessageDef]
 } derive(@debug.Debug)

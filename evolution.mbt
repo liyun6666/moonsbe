@@ -114,9 +114,11 @@ fn compare_type(
       }
       let length = if a.length() < b.length() { a.length() } else { b.length() }
       for index in 0..<length {
-        if a[index].name != b[index].name || a[index].offset != b[index].offset {
+        if a[index].name != b[index].name ||
+          a[index].offset != b[index].offset ||
+          a[index].since_version != b[index].since_version {
           difference(
-            issues, "both", "composite-member-changed", path, "composite member order, name or offset changed",
+            issues, "both", "composite-member-changed", path, "composite member order, name, offset or version changed",
           )
         }
         compare_type(
@@ -274,8 +276,7 @@ fn compare_block(
       Some(after) => {
         if before.name != after.name ||
           before.since_version != after.since_version ||
-          before.count_primitive != after.count_primitive ||
-          before.max_count != after.max_count {
+          before.dimension != after.dimension {
           difference(
             issues,
             "both",
@@ -381,6 +382,11 @@ pub fn compare_schemas(
   if old.byte_order != newer.byte_order {
     difference(
       issues, "both", "byte-order-changed", "schema", "byteOrder changed",
+    )
+  }
+  if old.header_layout != newer.header_layout {
+    difference(
+      issues, "both", "header-layout-changed", "schema", "message header layout or range changed",
     )
   }
   if newer.version < old.version {

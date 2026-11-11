@@ -102,7 +102,13 @@ async fn main {
       "generate", "interop/upstream/example-schema.xml", "generated/car/messages.mbt",
     ],
   )
-  step("08-format-generated", "moon", ["fmt", "generated/car"])
+  step(
+    "08-generate-extended",
+    "moon",
+    moon + ["generate", "interop/extended-schema.xml", "generated/extended/messages.mbt"],
+  )
+  step("08-format-generated-car", "moon", ["fmt", "generated/car"])
+  step("08-format-generated-extended", "moon", ["fmt", "generated/extended"])
   step("09-compile-generated", "moon", [
     "check", "--target", "js", "--warn-list=-implicit_impl_as_method", "--deny-warn",
   ])
@@ -114,8 +120,41 @@ async fn main {
     "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", "-cp", classpath, "uk.co.real_logic.sbe.examples.ReferenceVerifier",
     "_build/typed-car.bin",
   ])
+  step("12-generate-extended-java", "java", [
+    "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED",
+    "-Dsbe.output.dir=_build/reference-extended", "-jar", jar,
+    "interop/extended-schema.xml",
+  ])
+  let extended_sources = ["-cp", jar, "-d", "_build/reference-classes"]
+  for file in @fs.readdir("_build/reference-extended/extended") {
+    if file.has_suffix(".java") {
+      extended_sources.push("_build/reference-extended/extended/\{file}")
+    }
+  }
+  extended_sources.push("interop/ExtendedVerifier.java")
+  step("13-compile-extended-java", "javac", extended_sources)
+  let reference = [
+    "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", "-cp", classpath,
+    "ExtendedVerifier",
+  ]
+  for (kind, input) in [
+    ("present", "examples/extended.json"),
+    ("null", "examples/extended-null.json"),
+  ] {
+    let schema = "interop/extended-schema.xml"
+    let java_bytes = "_build/interop-logs/java-extended-\{kind}.bin"
+    let moon_bytes = "_build/interop-logs/moon-extended-\{kind}.bin"
+    let decoded = "_build/interop-logs/decoded-extended-\{kind}.json"
+    step("14-java-emit-\{kind}", "java", reference + ["emit", kind, java_bytes])
+    step("15-moon-decode-\{kind}", "moon", moon + ["decode", schema, java_bytes, decoded])
+    step("16-compare-\{kind}", "git", [
+      "diff", "--no-index", "--ignore-cr-at-eol", input, decoded,
+    ])
+    step("17-moon-encode-\{kind}", "moon", moon + ["encode", schema, "1", input, moon_bytes])
+    step("18-java-verify-\{kind}", "java", reference + ["verify", kind, moon_bytes])
+  }
   @fs.write_file(
-    "_build/interop-logs/result.txt", "PASS: Java -> MoonBit, MoonBit -> Java, typed generated consumer -> Java.\n207-byte reference message matches byte for byte.\n",
+    "_build/interop-logs/result.txt", "PASS: Java -> MoonBit, MoonBit -> Java, typed generated consumer -> Java.\n207-byte Car and both 36-byte extended reference messages match byte for byte.\n",
   )
   println(
     "PASS: cross-language messages and generated typed consumer; logs in _build/interop-logs",

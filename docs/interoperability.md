@@ -34,16 +34,34 @@ moon run tools/interop.mbtx
 | MoonBit → Java | MoonBit 从独立输入 JSON 编码，Java 参考编码器产生期望字节并逐字节比较 |
 | Java 字段遍历 | Java 生成解码器读取完整消息并遍历嵌套重复组和可变数据 |
 | 生成器 | 从同一 Schema 生成并编译 MoonBit 类型适配器 |
-| 独立消费包 | examples/typed 导入生成类型并检查记录、枚举和嵌套字段，再编码由 Java 校验 |
+| 独立消费包 | examples/typed 检查定长视图、记录、枚举和嵌套字段，再编码由 Java 校验 |
+| 扩展 Schema | Java 分别编码有价格和空价格的两条大端报文，MoonBit 解码并比较全部 JSON 字段。Java 解码 MoonBit 独立编码的报文并逐字节比较 |
 
 ## 本地实测结果
 
-2026 年 11 月 7 日的完整本地运行通过。消息连同 8 字节头部为 207 字节，Java 编码、MoonBit 编码和生成类型消费包编码得到相同消息字节，其 SHA-256 如下。
+2026 年 11 月 11 日复审版完整本地运行通过。Car 消息连同 8 字节头部为 207 字节，Java 编码、MoonBit 编码和生成类型消费包编码得到相同消息字节，其 SHA-256 如下。
 
 ```text
 0e1649c2f5a2719b2d10c2a9dc6e1aa962d8523fb8c4531052dbdad65528bfe2
 ```
 
-本地运行环境为 Windows、MoonBit 0.1.20261023、moonc v0.10.17 和 JDK 24.0.1。独立 CI 已在 Ubuntu、固定编译器 v0.10.17+d971670cd、Temurin 24 和 Node.js 22 中重复执行并通过。每次运行清理旧成功标记，失败会停止并保留已产生的日志。
+两条 36 字节扩展报文均通过双向验收。自编样例使用 13 字节头部、4 字节组维度、版本化价格成员和空值标记。Java 对照程序使用上游生成的头部与组维度接口设置扩展计数，并遍历完整消息。MoonBit 的生成消费测试另覆盖版本 0 报文、错误计数以及跨越固定块边界的读取。
+
+本地运行环境为 Windows、MoonBit 0.1.20261023、moonc v0.10.17 和 JDK 24.0.1。每次运行清理旧成功标记，失败会停止并保留已产生的日志。
 
 日志位于 `_build/interop-logs`。GitHub Actions 将日志、Java 消息、MoonBit 消息和解码 JSON 归档为 `moonsbe-interop-evidence`。完整测试范围与限制见 compatibility.md。
+
+## 定长字段访问测量
+
+```sh
+moon bench examples/extended --target js --release --warn-list=-implicit_impl_as_method --deny-warn
+```
+
+2026 年 11 月 11 日在 Windows、Intel Core i7-13650HX、Node.js 22.20.0 和固定 MoonBit 工具链上，用同一条 36 字节报文读取 `sequence`。输入预先加载，完整解码路径预热后开始测量。定长路径每次新建视图并取一个字段。
+
+| 路径 | 平均耗时 |
+| --- | ---: |
+| 生成类型完整解码后取字段 | 4.13 µs |
+| 生成的定长视图取字段 | 168.17 ns |
+
+测量覆盖该环境下的单字段访问。完整解码同时校验和构建其余字段，包含重复组和变长数据，两条路径的工作量不同。

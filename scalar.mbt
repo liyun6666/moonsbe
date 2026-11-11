@@ -1,7 +1,14 @@
 ///|
 fn encoding_null(encoding : TypeEncoding) -> Value raise SbeError {
   match encoding.null_value {
-    Some(text) => scalar_from_literal(encoding.primitive, text)
+    Some(text) => {
+      let value = scalar_from_literal(encoding.primitive, text)
+      if encoding.primitive == Float32 {
+        Floating(Float::from_double(value.as_float()).to_double())
+      } else {
+        value
+      }
+    }
     None => default_null(encoding.primitive)
   }
 }
@@ -54,6 +61,14 @@ fn check_scalar(
     }
     if primitive == Float32 && Float::from_double(number).is_inf() {
       raise InvalidValue(path, "value overflows float32")
+    }
+    let wire_value = if primitive == Float32 {
+      Float::from_double(number).to_double()
+    } else {
+      number
+    }
+    if same_scalar(Floating(wire_value), encoding_null(encoding)) {
+      raise InvalidValue(path, "floating value equals the reserved null")
     }
     match encoding.min_value {
       Some(text) if number < scalar_from_literal(primitive, text).as_float() =>

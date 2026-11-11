@@ -92,11 +92,25 @@ fn decode_type(
       }
       Sequence(selected)
     }
-    Composite(members, length) => {
-      let fields : Map[String, Value] = Map([])
+    Composite(members, _) => {
       let start = reader.position()
+      let length = schema.encoded_size_at(type_name, version)
       reader.require(start, length)
+      if presence == Optional {
+        let (first, marker) = schema.composite_null_marker(members)
+        reader.seek(start + first.offset)
+        let value = read_scalar(reader, marker.primitive)
+        if same_scalar(value, encoding_null(marker)) {
+          reader.seek(start + length)
+          return Absent
+        }
+      }
+      let fields : Map[String, Value] = Map([])
       for entry in members {
+        if entry.since_version > version {
+          fields[entry.name] = Absent
+          continue
+        }
         reader.seek(start + entry.offset)
         let nested = schema.type_def(entry.type_name)
         fields[entry.name] = decode_type(
@@ -136,7 +150,7 @@ fn decode_block(
     } else if field.presence == Constant {
       fields[field.name] = constant_value(schema, field)
     } else {
-      let size = schema.encoded_size(field.type_name)
+      let size = schema.encoded_size_at(field.type_name, version)
       if field.offset > acting_length || size > acting_length - field.offset {
         raise InvalidMessage(
           "blockLength does not contain active field \{field.name}",
@@ -159,13 +173,13 @@ fn decode_block(
       fields[group.name] = Absent
       continue
     }
-    let length = reader.read_uint(2).to_int()
-    let count_word = reader.read_uint(group.count_primitive.width())
-    if count_word > group.max_count.to_uint64() ||
-      count_word > state.entries_left.to_uint64() {
+    let dimensions = group.dimension.read(reader)
+    check_frame_counts(dimensions, group.block, version)
+    let length = dimensions["blockLength"]
+    let count = dimensions["numInGroup"]
+    if count > state.entries_left {
       raise LimitExceeded("group entry budget exhausted: \{group.name}")
     }
-    let count = count_word.to_int()
     state.entries_left -= count
     let entries : Array[Value] = []
     for _ in 0..<count {
@@ -212,7 +226,13 @@ pub fn decode(
     raise LimitExceeded("message or entry budget exceeds supported limit")
   }
   let reader = Reader::new(bytes, order=schema.byte_order)
-  let header = MessageHeader::read(reader)
+  let fields = schema.header_layout.read(reader)
+  let header = MessageHeader::{
+    block_length: fields["blockLength"],
+    template_id: fields["templateId"],
+    schema_id: fields["schemaId"],
+    version: fields["version"],
+  }
   if header.schema_id != schema.id {
     raise InvalidMessage("schemaId does not match compiled schema")
   }
@@ -220,6 +240,7 @@ pub fn decode(
   if message.since_version > header.version {
     raise InvalidMessage("template did not exist in acting version")
   }
+  check_frame_counts(fields, message.block, header.version)
   let state = DecodeState::{ reader, entries_left: max_entries, }
   let value = decode_block(
     schema,

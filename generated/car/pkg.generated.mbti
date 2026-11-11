@@ -53,6 +53,7 @@ pub fn Car::decode(Bytes) -> Self raise @moonsbe.SbeError
 pub fn Car::encode(Self, version? : Int32) -> Bytes raise @moonsbe.SbeError
 pub fn Car::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
 pub fn Car::to_value(Self) -> @moonsbe.Value
+pub fn Car::view(Bytes) -> CarView raise @moonsbe.SbeError
 
 pub(all) struct CarFuelFigures {
   f_speed : UInt64
@@ -75,6 +76,15 @@ pub(all) struct CarPerformanceFiguresAcceleration {
 } derive(@debug.Debug)
 pub fn CarPerformanceFiguresAcceleration::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
 pub fn CarPerformanceFiguresAcceleration::to_value(Self) -> @moonsbe.Value
+
+pub struct CarView {
+  block : @moonsbe.FixedBlock
+  acting_version : Int32
+}
+pub fn CarView::f_model_year(Self) -> UInt64 raise @moonsbe.SbeError
+pub fn CarView::f_serial_number(Self) -> UInt64 raise @moonsbe.SbeError
+pub fn CarView::f_some_numbers(Self, Int32) -> UInt64 raise @moonsbe.SbeError
+pub fn CarView::version(Self) -> Int32
 
 pub(all) struct Engine {
   f_capacity : UInt64

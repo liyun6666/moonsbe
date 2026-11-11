@@ -1,0 +1,52 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "liyun6666/moonsbe/generated/extended"
+
+import {
+  "liyun6666/moonsbe",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Extended {
+  f_sequence : UInt64
+  f_price : Price?
+  f_status : UInt64?
+  f_rows : Array[ExtendedRows]
+  f_note : String
+} derive(@debug.Debug)
+pub fn Extended::decode(Bytes) -> Self raise @moonsbe.SbeError
+pub fn Extended::encode(Self, version? : Int32) -> Bytes raise @moonsbe.SbeError
+pub fn Extended::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn Extended::to_value(Self) -> @moonsbe.Value
+pub fn Extended::view(Bytes) -> ExtendedView raise @moonsbe.SbeError
+
+pub(all) struct ExtendedRows {
+  f_code : UInt64
+  f_label : String
+} derive(@debug.Debug)
+pub fn ExtendedRows::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn ExtendedRows::to_value(Self) -> @moonsbe.Value
+
+pub struct ExtendedView {
+  block : @moonsbe.FixedBlock
+  acting_version : Int32
+}
+pub fn ExtendedView::f_sequence(Self) -> UInt64 raise @moonsbe.SbeError
+pub fn ExtendedView::f_status(Self) -> UInt64? raise @moonsbe.SbeError
+pub fn ExtendedView::version(Self) -> Int32
+
+pub(all) struct Price {
+  f_mantissa : Int64?
+  f_exponent : Int64
+  f_quality : UInt64?
+} derive(@debug.Debug)
+pub fn Price::from_value(@moonsbe.Value) -> Self raise @moonsbe.SbeError
+pub fn Price::to_value(Self) -> @moonsbe.Value
+
+// Type aliases
+
+// Traits

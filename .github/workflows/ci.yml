@@ -31,11 +31,11 @@ jobs:
       - run: moon check --target js --warn-list=-implicit_impl_as_method --deny-warn
       - run: moon test --target js --warn-list=-implicit_impl_as_method --deny-warn
       - name: Test library on Wasm GC
-        run: moon test --target wasm-gc -p liyun6666/moonsbe --warn-list=-implicit_impl_as_method --deny-warn
+        run: moon test --target wasm-gc -p liyun6666/moonsbe -p liyun6666/moonsbe/examples/extended --warn-list=-implicit_impl_as_method --deny-warn
       - name: Verify upstream Java interoperability and generated consumer
         run: moon run tools/interop.mbtx
       - name: Check generated source reproducibility
-        run: git diff --exit-code -- generated/car/messages.mbt
+        run: git diff --exit-code -- generated/car/messages.mbt generated/extended/messages.mbt
       - name: Count handwritten MoonBit code
         run: |
           sudo apt-get update -qq

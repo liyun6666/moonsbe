@@ -101,10 +101,36 @@ fn encode_type(
       }
       writer.write_uint(bits, primitive.width())
     }
-    Composite(members, length) => {
-      let fields = value.as_record()
+    Composite(members, _) => {
       let start = writer.position()
+      let length = schema.encoded_size_at(type_name, version)
+      if presence == Optional {
+        let (first, marker) = schema.composite_null_marker(members)
+        let null = encoding_null(marker)
+        if value is Absent {
+          writer.pad_to(start + first.offset)
+          write_scalar(writer, marker.primitive, null)
+          writer.pad_to(start + length)
+          return
+        }
+        let item = value.field(first.name)
+        if item is Absent || same_scalar(item, null) {
+          raise InvalidValue(
+            path, "present composite requires a non-null first element",
+          )
+        }
+      }
+      let fields = value.as_record()
       for entry in members {
+        if entry.since_version > version {
+          if !(fields.get(entry.name).unwrap_or(Absent) is Absent) {
+            raise InvalidValue(
+              path,
+              "future composite member supplied: \{entry.name}",
+            )
+          }
+          continue
+        }
         writer.pad_to(start + entry.offset)
         let nested_type = schema.type_def(entry.type_name)
         let item = match nested_type {
@@ -183,7 +209,7 @@ fn block_length_at(
   let mut length = 0
   for field in block.fields {
     if field.since_version <= version && field.presence != Constant {
-      let end = field.offset + schema.encoded_size(field.type_name)
+      let end = field.offset + schema.encoded_size_at(field.type_name, version)
       if end > length {
         length = end
       }
@@ -252,16 +278,17 @@ fn encode_block(
       continue
     }
     let entries = value.field(group.name).as_sequence()
-    if entries.length() > group.max_count {
+    if entries.length() > group.max_count || entries.length() > 100000 {
       raise LimitExceeded("group count exceeds allowed range: \{group.name}")
     }
-    writer.write_uint(
-      block_length_at(schema, group.block, version).to_uint64(),
-      2,
-    )
-    writer.write_uint(
-      entries.length().to_uint64(),
-      group.count_primitive.width(),
+    group.dimension.write(
+      writer,
+      Map([
+        ("blockLength", block_length_at(schema, group.block, version)),
+        ("numInGroup", entries.length()),
+      ]),
+      group.block,
+      version,
     )
     for index, entry in entries {
       encode_block(
@@ -297,7 +324,7 @@ fn encode_block(
 }
 
 ///|
-/// Encode one complete SBE message including its eight-byte header.
+/// Encode one complete SBE message including its schema-defined header.
 pub fn encode(
   schema : Schema,
   template_id : Int32,
@@ -317,13 +344,17 @@ pub fn encode(
     )
   }
   let writer = Writer::new(order=schema.byte_order, limit=max_bytes)
-  let header = MessageHeader::{
-    block_length: block_length_at(schema, message.block, version),
-    template_id,
-    schema_id: schema.id,
+  schema.header_layout.write(
+    writer,
+    Map([
+      ("blockLength", block_length_at(schema, message.block, version)),
+      ("templateId", template_id),
+      ("schemaId", schema.id),
+      ("version", version),
+    ]),
+    message.block,
     version,
-  }
-  header.write(writer)
+  )
   encode_block(schema, message.block, value, writer, version, message.name, 0)
   writer.to_bytes()
 }

@@ -85,3 +85,20 @@ test "overlapping fields and fields after variable data are rejected" {
     _ => fail("overlap must fail")
   }
 }
+
+///|
+test "uint32 blockLength supports a fixed block beyond uint16 capacity" {
+  let schema = @moonsbe.parse_schema(
+    "<messageSchema id=\"7\" headerType=\"Custom\"><types><composite name=\"Custom\"><type name=\"blockLength\" primitiveType=\"uint32\"/><type name=\"templateId\" primitiveType=\"uint16\"/><type name=\"schemaId\" primitiveType=\"uint16\"/><type name=\"version\" primitiveType=\"uint16\"/></composite></types><message name=\"Wide\" id=\"1\" blockLength=\"65536\"><field name=\"number\" id=\"1\" type=\"uint8\" offset=\"65535\"/></message></messageSchema>",
+  )
+  let bytes = @moonsbe.encode(
+    schema,
+    1,
+    @moonsbe.Record({ "number": @moonsbe.Unsigned(19UL) }),
+  )
+  assert_eq(bytes.length(), 65546)
+  assert_eq(@moonsbe.to_hex(bytes[:10].to_owned()), "00000100010007000000")
+  let message = @moonsbe.decode(schema, bytes)
+  assert_eq(message.header.block_length, 65536)
+  assert_eq(message.value.field("number").as_unsigned(), 19UL)
+}

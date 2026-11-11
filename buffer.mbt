@@ -55,25 +55,45 @@ pub fn Reader::read_bytes(
 ///|
 /// Read an unsigned word of 1, 2, 4 or 8 bytes without loss of precision.
 pub fn Reader::read_uint(self : Reader, width : Int32) -> UInt64 raise SbeError {
-  if width != 1 && width != 2 && width != 4 && width != 8 {
-    raise InvalidMessage("integer width must be 1, 2, 4 or 8")
-  }
+  check_word_width(width)
   self.require(self.position, width)
-  let mut word = 0UL
-  for i in 0..<width {
-    let shift = match self.order {
-      LittleEndian => i * 8
-      BigEndian => (width - i - 1) * 8
-    }
-    word = word | (self.bytes[self.position + i].to_uint64() << shift)
-  }
+  let word = unsigned_word(self.bytes, self.position, width, self.order)
   self.position += width
   word
 }
 
 ///|
+fn check_word_width(width : Int32) -> Unit raise SbeError {
+  if width != 1 && width != 2 && width != 4 && width != 8 {
+    raise InvalidMessage("integer width must be 1, 2, 4 or 8")
+  }
+}
+
+///|
+fn unsigned_word(
+  bytes : Bytes,
+  offset : Int32,
+  width : Int32,
+  order : ByteOrder,
+) -> UInt64 {
+  let mut word = 0UL
+  for i in 0..<width {
+    let shift = match order {
+      LittleEndian => i * 8
+      BigEndian => (width - i - 1) * 8
+    }
+    word = word | (bytes[offset + i].to_uint64() << shift)
+  }
+  word
+}
+
+///|
 pub fn Reader::read_int(self : Reader, width : Int32) -> Int64 raise SbeError {
-  let word = self.read_uint(width)
+  sign_extend(self.read_uint(width), width)
+}
+
+///|
+fn sign_extend(word : UInt64, width : Int32) -> Int64 {
   if width == 8 {
     return word.reinterpret_as_int64()
   }

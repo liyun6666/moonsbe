@@ -1,0 +1,5 @@
+import {
+  "liyun6666/moonsbe" @sbe,
+  "liyun6666/moonsbe/generated/extended" @wire,
+  "moonbitlang/core/bench",
+} for "test"

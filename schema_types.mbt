@@ -114,9 +114,6 @@ fn SchemaCompiler::resolve(
       let names : Map[String, Bool] = Map([])
       let mut offset = 0
       for child in node.children {
-        if child.integer("sinceVersion", default=0) != 0 {
-          raise Unsupported("versioned composite members")
-        }
         let member_name = child.required("name")
         if names.contains(member_name) {
           raise InvalidSchema(
@@ -133,10 +130,12 @@ fn SchemaCompiler::resolve(
           qualified
         }
         let resolved = self.resolve(member_type_name, depth + 1)
+        let type_version = self.type_version(member_type_name)
+        let member_version = parse_schema_id(child, "sinceVersion", default=0)
         let start = child.integer("offset", default=offset)
-        if start < offset {
+        if start < offset || start > 1048576 {
           raise InvalidSchema(
-            "composite offset overlaps previous member",
+            "composite offset overlaps previous member or exceeds 1 MiB",
             child.position,
           )
         }
@@ -144,6 +143,11 @@ fn SchemaCompiler::resolve(
           name: member_name,
           type_name: member_type_name,
           offset: start,
+          since_version: if type_version > member_version {
+            type_version
+          } else {
+            member_version
+          },
         })
         offset = start + type_size(resolved)
         if offset > 1048576 {
@@ -157,6 +161,17 @@ fn SchemaCompiler::resolve(
   self.compiled[name] = result
   self.visiting[name] = false
   result
+}
+
+///|
+fn SchemaCompiler::type_version(
+  self : SchemaCompiler,
+  name : String,
+) -> Int32 raise SbeError {
+  match self.definitions.get(name) {
+    Some(node) => parse_schema_id(node, "sinceVersion", default=0)
+    None => 0
+  }
 }
 
 ///|
@@ -188,7 +203,7 @@ fn parse_encoding(node : XmlNode) -> TypeEncoding raise SbeError {
       1
     },
   )
-  if primitive.width() * length > 1048576 {
+  if length > 1048576 / primitive.width() {
     raise LimitExceeded("primitive array size exceeds 1 MiB")
   }
   if presence == Constant && value.is_empty() {

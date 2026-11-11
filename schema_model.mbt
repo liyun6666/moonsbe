@@ -29,6 +29,7 @@ pub(all) struct CompositeMember {
   name : String
   type_name : String
   offset : Int32
+  since_version : Int32
 } derive(Debug)
 
 ///|
@@ -58,6 +59,7 @@ pub(all) struct GroupDef {
   block : BlockDef
   count_primitive : Primitive
   max_count : Int32
+  dimension : FrameLayout
 } derive(Debug)
 
 ///|
@@ -93,6 +95,7 @@ pub(all) struct Schema {
   version : Int32
   package_name : String
   byte_order : ByteOrder
+  header_layout : FrameLayout
   types : Map[String, TypeDef]
   messages : Array[MessageDef]
 } derive(Debug)
@@ -140,6 +143,29 @@ fn type_size(type_def : TypeDef) -> Int32 {
       }
     BitSet(primitive, _) => primitive.width()
     Composite(_, length) => length
+  }
+}
+
+///|
+fn Schema::encoded_size_at(
+  self : Schema,
+  name : String,
+  version : Int32,
+) -> Int32 raise SbeError {
+  let definition = self.type_def(name)
+  match definition {
+    Composite(members, _) if version < self.version => {
+      let mut end = 0
+      for entry in members {
+        if entry.since_version <= version {
+          end = end.max(
+            entry.offset + self.encoded_size_at(entry.type_name, version),
+          )
+        }
+      }
+      end
+    }
+    _ => type_size(definition)
   }
 }
 

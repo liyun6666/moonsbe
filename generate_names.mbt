@@ -115,6 +115,7 @@ fn Generator::claim(
     | "Array"
     | "Map"
     | "Option"
+    | "Lazy"
     | "Result" =>
       raise Unsupported(
         "generated type conflicts with MoonBit built-in: \{generated}",

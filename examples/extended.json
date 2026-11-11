@@ -1,0 +1,16 @@
+{
+  "sequence": "16909060",
+  "price": {
+    "mantissa": "1250",
+    "exponent": "-2",
+    "quality": "8"
+  },
+  "status": "123",
+  "rows": [
+    {
+      "code": "42",
+      "label": "x"
+    }
+  ],
+  "note": "ok"
+}

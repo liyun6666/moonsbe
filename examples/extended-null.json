@@ -1,0 +1,12 @@
+{
+  "sequence": "16909060",
+  "price": null,
+  "status": null,
+  "rows": [
+    {
+      "code": "42",
+      "label": "x"
+    }
+  ],
+  "note": "ok"
+}

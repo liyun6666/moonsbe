@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe"
+                   package="extended" id="7" version="1"
+                   byteOrder="bigEndian" headerType="ExtendedHeader">
+    <types>
+        <composite name="ExtendedHeader">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16" offset="6"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint8"/>
+            <type name="numGroups" primitiveType="uint8"/>
+            <type name="numVarDataFields" primitiveType="uint8"/>
+        </composite>
+        <composite name="ExtendedDimensions">
+            <type name="blockLength" primitiveType="uint8"/>
+            <type name="numInGroup" primitiveType="uint8" minValue="1" maxValue="4"/>
+            <type name="numGroups" primitiveType="uint8"/>
+            <type name="numVarDataFields" primitiveType="uint8"/>
+        </composite>
+        <composite name="Price">
+            <type name="mantissa" primitiveType="int32" presence="optional" nullValue="-99"/>
+            <type name="exponent" primitiveType="int8"/>
+            <type name="quality" primitiveType="uint8" sinceVersion="1"/>
+        </composite>
+        <composite name="Utf8">
+            <type name="length" primitiveType="uint8" maxValue="254"/>
+            <type name="varData" primitiveType="uint8" length="0" characterEncoding="UTF-8"/>
+        </composite>
+    </types>
+    <sbe:message name="Extended" id="1">
+        <field name="sequence" id="1" type="uint32"/>
+        <field name="price" id="2" type="Price" presence="optional"/>
+        <field name="status" id="7" type="uint16" sinceVersion="1" presence="optional"/>
+        <group name="rows" id="3" dimensionType="ExtendedDimensions">
+            <field name="code" id="4" type="uint16"/>
+            <data name="label" id="5" type="Utf8"/>
+        </group>
+        <data name="note" id="6" type="Utf8"/>
+    </sbe:message>
+</sbe:messageSchema>

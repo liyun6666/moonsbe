@@ -3,7 +3,13 @@
 fn main raise {
   let args = @env.args()[2:].to_owned()
   guard args.length() == 2 else { abort("usage: INPUT.bin OUTPUT.bin") }
-  let car = @car.Car::decode(@fs.read_file_to_bytes(args[0]))
+  let input = @fs.read_file_to_bytes(args[0])
+  let view = @car.Car::view(input)
+  assert_eq(view.f_serial_number(), 1234UL)
+  assert_eq(view.f_model_year(), 2013UL)
+  assert_eq(view.f_some_numbers(0), 1UL)
+  assert_eq(view.f_some_numbers(3), 4UL)
+  let car = @car.Car::decode(input)
   assert_eq(car.f_serial_number, 1234UL)
   assert_eq(car.f_available, @car.T)
   assert_eq(car.f_code, @car.A)

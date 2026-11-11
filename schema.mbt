@@ -122,9 +122,9 @@ fn SchemaCompiler::block(
           )
         }
         let start = child.integer("offset", default=offset)
-        if start < offset {
+        if start < offset || start > 16777216 {
           raise InvalidSchema(
-            "field offset overlaps previous field",
+            "field offset overlaps previous field or exceeds the message limit",
             child.position,
           )
         }
@@ -133,7 +133,7 @@ fn SchemaCompiler::block(
           id,
           type_name,
           offset: start,
-          since_version,
+          since_version: since_version.max(self.type_version(type_name)),
           presence,
           value_ref,
         })
@@ -151,14 +151,16 @@ fn SchemaCompiler::block(
         let dimension = child.attributes
           .get("dimensionType")
           .unwrap_or("groupSizeEncoding")
-        let (count_primitive, max_count) = self.group_dimension(dimension)
+        let layout = self.frame_layout(dimension, ["blockLength", "numInGroup"])
+        let count = layout.entry("numInGroup")
         groups.push({
           name,
           id,
           since_version,
           block: self.block(child, depth + 1),
-          count_primitive,
-          max_count,
+          count_primitive: count.primitive,
+          max_count: count.max_value,
+          dimension: layout,
         })
       }
       "data" => {
@@ -180,61 +182,13 @@ fn SchemaCompiler::block(
     }
   }
   let block_length = node.integer("blockLength", default=offset)
-  if block_length < offset || block_length > 65534 {
+  if block_length < offset || block_length > 16777216 {
     raise InvalidSchema(
-      "blockLength is smaller than fields or exceeds uint16",
+      "blockLength is smaller than fields or exceeds the message limit",
       node.position,
     )
   }
   { fields, groups, data, block_length, }
-}
-
-///|
-fn SchemaCompiler::group_dimension(
-  self : SchemaCompiler,
-  name : String,
-) -> (Primitive, Int32) raise SbeError {
-  match self.resolve(name, 0) {
-    Composite(members, length) if members.length() == 2 => {
-      let first = members[0]
-      let second = members[1]
-      if first.name != "blockLength" ||
-        first.offset != 0 ||
-        second.name != "numInGroup" ||
-        second.offset != 2 {
-        raise Unsupported(
-          "group dimensions require uint16 blockLength followed by numInGroup",
-        )
-      }
-      let block_type = self.resolve(first.type_name, 0)
-      let count_type = self.resolve(second.type_name, 0)
-      match (block_type, count_type) {
-        (Encoded(a), Encoded(b)) if a.primitive == UInt16 &&
-          a.length == 1 &&
-          a.presence == Required &&
-          b.length == 1 &&
-          b.presence == Required &&
-          (
-            b.primitive == UInt8 ||
-            b.primitive == UInt16 ||
-            b.primitive == UInt32
-          ) &&
-          length == 2 + b.primitive.width() => {
-          let default = if b.primitive == UInt8 { 254 } else { 65534 }
-          let max_count = match b.max_value {
-            None => default
-            Some(value) =>
-              @string.parse_int(value) catch {
-                _ => raise InvalidSchema("invalid numInGroup maxValue", 0)
-              }
-          }
-          (b.primitive, if max_count < 100000 { max_count } else { 100000 })
-        }
-        _ => raise Unsupported("group dimension encodings")
-      }
-    }
-    _ => raise Unsupported("extended group dimensions")
-  }
 }
 
 ///|
@@ -250,6 +204,8 @@ fn SchemaCompiler::data_encoding(
         (self.resolve(first.type_name, 0), self.resolve(second.type_name, 0)) {
         (Encoded(a), Encoded(b)) if first.name == "length" &&
           second.name == "varData" &&
+          first.since_version == 0 &&
+          second.since_version == 0 &&
           first.offset == 0 &&
           second.offset == a.primitive.width() &&
           a.length == 1 &&
@@ -335,26 +291,9 @@ pub fn parse_schema(
     ignore(compiler.resolve(name, 0))
   }
   let header_name = root.attributes.get("headerType").unwrap_or("messageHeader")
-  match compiler.resolve(header_name, 0) {
-    Composite(members, 8) if members.length() == 4 => {
-      let names = ["blockLength", "templateId", "schemaId", "version"]
-      for index, entry in members {
-        if entry.name != names[index] || entry.offset != index * 2 {
-          raise Unsupported("nonstandard message header layout")
-        }
-        match compiler.resolve(entry.type_name, 0) {
-          Encoded(encoding) if encoding.primitive == UInt16 &&
-            encoding.length == 1 &&
-            encoding.presence == Required => ()
-          _ =>
-            raise Unsupported(
-              "message header must contain four required uint16 values",
-            )
-        }
-      }
-    }
-    _ => raise Unsupported("message header must be 8 bytes")
-  }
+  let header_layout = compiler.frame_layout(header_name, [
+    "blockLength", "templateId", "schemaId", "version",
+  ])
   let messages : Array[MessageDef] = []
   let ids : Map[Int32, Bool] = Map([])
   let names : Map[String, Bool] = Map([])
@@ -387,6 +326,7 @@ pub fn parse_schema(
     version,
     package_name: root.attributes.get("package").unwrap_or("generated"),
     byte_order: order,
+    header_layout,
     types: compiler.compiled,
     messages,
   }

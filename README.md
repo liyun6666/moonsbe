@@ -4,7 +4,7 @@
 
 MoonBit 的 SBE 二进制消息编解码与类型化代码生成库。输入现有 SBE XML Schema，生成 MoonBit 结构体、枚举和编解码适配器，用于与 Java、C++ 等系统交换同一消息定义下的二进制数据。
 
-首版提供一个明确限定的 SBE 兼容范围。固定字段、复合类型、嵌套重复组、可变长数据及版本字段都经过测试。官方 Car 样例已完成 Java → MoonBit、MoonBit → Java 和生成类型消费包 → Java 的验证，完整消息为 207 字节，字节逐一一致。
+GitHub 上的 0.2.0 复审版支持自定义消息头、扩展组维度、版本化复合成员和可选复合字段。Java 与 MoonBit 已对照 207 字节的官方 Car 报文及两条 36 字节扩展报文，完整报文逐字节一致。Mooncakes 当前发布版为 0.1.0。
 
 - [兼容范围](docs/compatibility.md)
 - [独立互通验收与实际场景](docs/interoperability.md)
@@ -50,7 +50,15 @@ moon run tools/interop.mbtx
 
 该命令校验参考 JAR 的 SHA-256，执行独立编码、全部字段对照、完整字节比较、生成代码编译和消费包验证。日志位于 `_build/interop-logs`，CI 将日志与二进制文件归档。
 
-生成类型适配器使用共享的动态校验运行时。每份生成源码嵌入 Schema，在包初始化时编译一次。当前版本以可复用性、边界检查和互通正确性为目标，性能指标需另行测量。
+只需读取根块的定长数值字段时，可以直接使用生成的定长视图。
+
+```moonbit
+let view = @car.Car::view(bytes)
+let serial_number = view.f_serial_number()
+let first_number = view.f_some_numbers(0)
+```
+
+视图按生成时确定的偏移、宽度和字节序从原始报文读数，并检查版本和访问边界。完整 `encode` 与 `decode` 在首次调用时加载 Schema，使用共享运行时处理复合字段、重复组和变长区。复现单字段读取的测量见 [互通记录](docs/interoperability.md)。
 
 ## 库接口
 
@@ -60,9 +68,9 @@ moon run tools/interop.mbtx
 | --- | --- |
 | `parse_schema(xml, includes=...)` | 编译 XML Schema，解析类型、布局和显式提供的 XInclude |
 | `value_from_json(schema, template_id, source)` | 根据 Schema 读取消息 JSON，保留整数精度并拒绝重复键 |
-| `encode(schema, template_id, value, version=...)` | 编码一条包含标准 8 字节消息头的完整消息 |
+| `encode(schema, template_id, value, version=...)` | 按 Schema 指定的头部布局编码一条完整消息 |
 | `decode(schema, bytes, max_entries=...)` | 解码一条已有边界的完整消息，检查长度与资源上限 |
-| `generate_moonbit(xml, includes=...)` | 生成可编译的类型化 MoonBit 适配器 |
+| `generate_moonbit(xml, includes=...)` | 生成类型化适配器与定长数值字段视图 |
 | `compare_schemas(old, newer)` | 检查此运行时下的双向版本兼容风险 |
 
 `Value` 区分 `Signed(Int64)`、`Unsigned(UInt64)`、`Floating(Double)`、`Text`、`Binary`、`Record`、`Sequence` 和 `Absent`。JSON 输入可使用精确整数文本或十进制字符串，输出整数统一采用字符串，二进制值采用十六进制字符串。
@@ -90,7 +98,7 @@ hex INPUT.bin
 moon fmt --check
 moon check --target js --warn-list=-implicit_impl_as_method --deny-warn
 moon test --target js --warn-list=-implicit_impl_as_method --deny-warn
-moon test --target wasm-gc -p liyun6666/moonsbe --warn-list=-implicit_impl_as_method --deny-warn
+moon test --target wasm-gc -p liyun6666/moonsbe -p liyun6666/moonsbe/examples/extended --warn-list=-implicit_impl_as_method --deny-warn
 moon run tools/interop.mbtx
 moon run tools/stats.mbtx
 ```

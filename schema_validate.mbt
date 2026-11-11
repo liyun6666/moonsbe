@@ -82,8 +82,12 @@ fn validate_block(
     match definition {
       Encoded(encoding) if encoding.length == 0 =>
         raise InvalidSchema("zero-length varData type used as a fixed field", 0)
+      Composite(entries, _) if field.presence == Optional =>
+        ignore(schema.composite_null_marker(entries))
       Composite(_, _) | BitSet(_, _) if field.presence != Required =>
-        raise Unsupported("optional or constant composite/set fields")
+        raise Unsupported(
+          "constant composite fields and optional/constant set fields",
+        )
       Encoded(encoding) if field.presence == Optional && encoding.length != 1 =>
         raise Unsupported("optional primitive arrays")
       _ => ()
@@ -99,6 +103,11 @@ fn validate_block(
     if group.since_version > schema.version || group.max_count < 0 {
       raise InvalidSchema("group version or count bound is invalid", 0)
     }
+    validate_frame_member(
+      group.dimension,
+      "blockLength",
+      group.block.block_length,
+    )
     validate_block(schema, group.block, depth + 1)
   }
   for data in block.data {
@@ -135,16 +144,63 @@ fn validate_compiled_schema(schema : Schema) -> Unit raise SbeError {
             raise InvalidSchema("set choice is newer than schema", 0)
           }
         }
-      Composite(entries, _) =>
+      Composite(entries, _) => {
         if entries.is_empty() {
           raise InvalidSchema("composite must contain a type or reference", 0)
         }
+        for entry in entries {
+          if entry.since_version > schema.version {
+            raise InvalidSchema("composite member is newer than schema", 0)
+          }
+        }
+      }
     }
   }
+  validate_frame_member(schema.header_layout, "schemaId", schema.id)
+  validate_frame_member(schema.header_layout, "version", schema.version)
   for message in schema.messages {
     if message.since_version > schema.version {
       raise InvalidSchema("message is newer than schema", 0)
     }
+    validate_frame_member(schema.header_layout, "templateId", message.id)
+    validate_frame_member(
+      schema.header_layout,
+      "blockLength",
+      message.block.block_length,
+    )
     validate_block(schema, message.block, 0)
+  }
+}
+
+///|
+fn validate_frame_member(
+  layout : FrameLayout,
+  name : String,
+  value : Int32,
+) -> Unit raise SbeError {
+  let entry = layout.entry(name)
+  if value < entry.min_value || value > entry.max_value {
+    raise InvalidSchema("compiled \{name} exceeds its framing range", 0)
+  }
+}
+
+///|
+fn Schema::composite_null_marker(
+  self : Schema,
+  members : Array[CompositeMember],
+) -> (CompositeMember, TypeEncoding) raise SbeError {
+  if members.is_empty() || members[0].since_version != 0 {
+    raise InvalidSchema(
+      "optional composite needs an unversioned first element", 0,
+    )
+  }
+  let first = members[0]
+  match self.type_def(first.type_name) {
+    Encoded(encoding) if encoding.length == 1 && encoding.presence != Constant =>
+      (first, encoding)
+    _ =>
+      raise Unsupported(
+        "optional composite first element must be a wire scalar",
+      )
   }
 }
