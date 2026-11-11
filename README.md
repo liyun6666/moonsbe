@@ -4,7 +4,7 @@
 
 MoonBit 的 SBE 二进制消息编解码与类型化代码生成库。输入现有 SBE XML Schema，生成 MoonBit 结构体、枚举和编解码适配器，用于与 Java、C++ 等系统交换同一消息定义下的二进制数据。
 
-GitHub 上的 0.2.0 复审版支持自定义消息头、扩展组维度、版本化复合成员和可选复合字段。Java 与 MoonBit 已对照 207 字节的官方 Car 报文及两条 36 字节扩展报文，完整报文逐字节一致。Mooncakes 当前发布版为 0.1.0。
+0.2.0 支持自定义消息头、扩展组维度、版本化复合成员和可选复合字段。Java 与 MoonBit 已对照 207 字节的官方 Car 报文及两条 36 字节扩展报文，完整报文逐字节一致。可用 `moon add liyun6666/moonsbe@0.2.0` 安装。[Mooncakes 包页面](https://mooncakes.io/docs/liyun6666/moonsbe)
 
 - [兼容范围](docs/compatibility.md)
 - [独立互通验收与实际场景](docs/interoperability.md)
